@@ -1,3 +1,10 @@
+#include "iostream"
+
+#include "uci.h"
+
 int main(){
-    return 0;
+    std::cout << "Myfish by Julien Durand" << std::endl;
+
+    uci::UCIEngine engine;
+    engine.run();
 }
