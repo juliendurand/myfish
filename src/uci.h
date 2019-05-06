@@ -4,11 +4,14 @@
 #include <string>
 #include <vector>
 
+#include "position.h"
+
 namespace uci {
 
     class UCIEngine{
 
     bool debug = false;
+    chess::Position position;
 
     public:
         void run();

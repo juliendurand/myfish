@@ -14,8 +14,8 @@ namespace uci {
 
     std::string trim(const std::string &s)
     {
-       auto wsfront=std::find_if_not(s.begin(),s.end(),[](int c){return std::isspace(c);});
-       auto wsback=std::find_if_not(s.rbegin(),s.rend(),[](int c){return std::isspace(c);}).base();
+       auto wsfront=std::find_if_not(s.begin(),s.end(),[](int c){return std::isspace(c) || c == '\r' || c == '\n';});
+       auto wsback=std::find_if_not(s.rbegin(),s.rend(),[](int c){return std::isspace(c)|| c == '\r' || c == '\n';}).base();
        return (wsback<=wsfront ? std::string() : std::string(wsfront,wsback));
     }
 
@@ -28,8 +28,23 @@ namespace uci {
         return str;
     }
 
+    std::string join(const std::vector<std::string> &v, char sep){
+        std::stringstream ss;
+        const int v_size = v.size();
+        for(size_t i = 0; i < v_size; ++i)  // v is your vector of string
+        {
+          if(i != 0)
+            ss << " ";
+          ss << v[i];
+        }
+        return ss.str();
+    }
+
+
+
     void UCIEngine::run(){
         std::string line;
+        std::cout << "> ";
         while(getline(std::cin, line)){
             line = remove_duplicate_whitespaces(line);
             line = trim(line);
@@ -56,11 +71,12 @@ namespace uci {
             else if(cmd == "quit") { uci_quit(params); }
 
             // Proprietary extensions
-            else if(cmd == "display") { /*unimplemented*/  }
-            else if(cmd == "perft") { /*unimplemented*/  }
+            else if(cmd == "display") { display(params);  }
+            else if(cmd == "perft") { perft(params);  }
 
             // default
             else { std::cout << "unknonwn command: " << cmd << std::endl; }
+            std::cout << "> ";
         }
     }
 
@@ -90,13 +106,18 @@ namespace uci {
     }
 
     void UCIEngine::uci_newgame(const std::vector<std::string> &params){
-        /*unimplemented*/
+        position.reset();
     }
 
-    void UCIEngine::uci_position(const std::vector<std::string >&params){
+    void UCIEngine::uci_position(const std::vector<std::string> &params){
         for(std::string p : params){
             if(p == "startpos") { /*unimplemented*/ break; }
-            else if(p == "fen") { /*unimplemented*/ break; }
+            else if(p == "fen") {
+                std::vector<std::string> new_params(params.begin() + 1, params.end());
+                std::string fen = join(new_params, ' ');
+                position.import_fen(fen);
+                break;
+            }
         }
         for(std::string p : params){
             if(p == "moves") { /*unimplemented*/ break; }
@@ -119,8 +140,49 @@ namespace uci {
         exit(0);
     }
 
+#include <bitset>
+
     void UCIEngine::display(const std::vector<std::string> &params){
-        /*unimplemented*/
+        const std::string rank_separator = "+---+---+---+---+---+---+---+---+";
+        const std::string file_separator = "|";
+        std::string sb;
+        for(int i = 0; i < 64; i++){
+            if(i % 8 == 0){
+                if(i > 0) {
+                    sb += "\n";
+                }
+                sb += rank_separator;
+                sb += "\n";
+                sb += file_separator;
+            }
+            int square = i % 8 + (7 - i / 8) * 8;
+            sb += ' ';
+            sb += position.board.get_square(square);
+            sb += ' ';
+            sb += file_separator;
+        }
+        sb += "\n";
+        sb += rank_separator;
+        sb += "\n";
+        sb += "Turn: ";
+        sb += position.plies % 2 == 1 ? "white" : "black";
+        sb += "\n";
+        sb += "Castling rights: ";
+        sb += position.get_all_castling();
+        sb += "\n";
+        sb += "En Passant: ";
+        sb += position.get_en_passant();
+        sb += "\n";
+        sb += "Nb reversible plies: ";
+        sb += std::to_string(position.reversible_plies);
+        sb += "\n";
+        sb += "Moves: ";
+        sb += std::to_string((position.plies + 1) / 2);
+        sb += "\n";
+        sb += "Plies: ";
+        sb += std::to_string(position.plies);
+        sb += "\n";
+        std::cout << sb;
     }
 
     void UCIEngine::perft(const std::vector<std::string> &params){

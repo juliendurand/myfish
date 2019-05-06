@@ -11,7 +11,7 @@ CXXFLAGS += -Wall -std=c++11 -O3
 DEPENDFLAGS += -std=c++11
 LDFLAGS +=
 
-build: $(OBJS) .depend
+build: $(OBJS)
 	@$(MKDIR_P) $(BIN_DIR)
 	$(CXX) -o $(EXEC) $(OBJS) $(LDFLAGS)
 	@echo "Build Completed"
@@ -21,13 +21,13 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 .depend:
-	-@$(CXX) $(DEPENDFLAGS) -MM $(DEPS) > $@ 2> /dev/null
+	@$(CXX) $(DEPENDFLAGS) -MM $(DEPS) > $@ 2> /dev/null
 
 .PHONY: clean
 
 clean:
 	@rm -rf $(BUILD_DIR) $(BIN_DIR) .depend
 
--include .depend
+-include $(DEPS)
 
 MKDIR_P ?= mkdir -p
