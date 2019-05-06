@@ -2,8 +2,8 @@ BIN_DIR = bin
 BUILD_DIR = build
 SRC_DIR = src
 
-SRCS := $(shell find $(SRC_DIR) -name *.cpp -or -name *.c)
-OBJS := $(addsuffix .o,$(basename $(SRCS)))
+SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
+OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 DEPS := $(OBJS:.o=.d)
 EXEC = $(BIN_DIR)/myfish
 
@@ -15,18 +15,18 @@ build: $(OBJS) .depend
 	@$(MKDIR_P) $(BIN_DIR)
 	$(CXX) -o $(EXEC) $(OBJS) $(LDFLAGS)
 	@echo "Build Completed"
-	@echo ""
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
+	@$(MKDIR_P) $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 .depend:
 	-@$(CXX) $(DEPENDFLAGS) -MM $(DEPS) > $@ 2> /dev/null
 
-.default:
-	build
-
 .PHONY: clean
 
 clean:
-	@rm -f $(EXE) $(OBJS) .depend
+	@rm -rf $(BUILD_DIR) $(BIN_DIR) .depend
 
 -include .depend
 
