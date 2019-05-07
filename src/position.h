@@ -3,14 +3,13 @@
 
 #include <cstdint>
 
+#include "move.h"
+#include "utils.h"
+
 namespace chess{
 
-    typedef uint64_t U64;
-    typedef uint8_t U8;
-    typedef char Piece;
-    typedef char Color;
-
-    struct Board{
+    class Board{
+    public:
         static const Piece EMPTY = ' ';
         static const Piece WHITE_PAWN = 'P';
         static const Piece WHITE_KNIGHT ='N';
@@ -25,6 +24,7 @@ namespace chess{
         static const Piece BLACK_QUEEN = 'q';
         static const Piece BLACK_KING = 'k';
 
+        static const int INVALID_LAYER = -1;
         static const int WHITE_PAWN_LAYER = 0;
         static const int WHITE_KNIGHT_LAYER = 1;
         static const int WHITE_BISHOP_LAYER = 2;
@@ -48,6 +48,9 @@ namespace chess{
         void set_square(Piece piece, int square);
         Piece get_square(int square);
         void empty();
+        static Piece get_piece(int layer);
+        static int get_layer(Piece piece);
+        void make_move(Move* move);
         void print();
 
     private:
@@ -87,6 +90,7 @@ namespace chess{
         int get_reversible_plies();
         std::string get_square(int square);
         void reset();
+        void make_move(Move* move);
     };
 
 }

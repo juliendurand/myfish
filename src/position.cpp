@@ -42,57 +42,14 @@ namespace chess {
         for(int layer = 0; layer < NB_LAYERS; layer++){
             board[layer] &= ~bitmask;
         }
-        int layer = -1;
-        switch(piece){
-            case EMPTY:
-                return;
-            case WHITE_PAWN:
-                layer = WHITE_PAWN_LAYER;
-                break;
-            case WHITE_KNIGHT:
-                layer = WHITE_KNIGHT_LAYER;
-                break;
-            case WHITE_BISHOP:
-                layer = WHITE_BISHOP_LAYER;
-                break;
-            case WHITE_ROOK:
-                layer = WHITE_ROOK_LAYER;
-                break;
-            case WHITE_QUEEN:
-                layer = WHITE_QUEEN_LAYER;
-                break;
-            case WHITE_KING:
-                layer = WHITE_KING_LAYER;
-                break;
-            case BLACK_PAWN:
-                layer = BLACK_PAWN_LAYER;
-                break;
-            case BLACK_KNIGHT:
-                layer = BLACK_KNIGHT_LAYER;
-                break;
-            case BLACK_BISHOP:
-                layer = BLACK_BISHOP_LAYER;
-                break;
-            case BLACK_ROOK:
-                layer = BLACK_ROOK_LAYER;
-                break;
-            case BLACK_QUEEN:
-                layer = BLACK_QUEEN_LAYER;
-                break;
-            case BLACK_KING:
-                layer = BLACK_KING_LAYER;
-                break;
-            default:
-                return; // TODO : generate Exception ?
-        }
-        board[layer] |= bitmask;
+        board[get_layer(piece)] |= bitmask;
     }
 
     Piece Board::get_square(int square){
         U64 bitmask = get_bitmask(square);
         for(int l = 0; l < NB_LAYERS; l++){
             if(board[l] & bitmask){
-                return chess::Board::PIECES[l];
+                return get_piece(l);
             }
         }
         return EMPTY;
@@ -104,6 +61,58 @@ namespace chess {
         }
     }
 
+    Piece Board::get_piece(int layer){
+        return PIECES[layer];
+    }
+
+    int Board::get_layer(Piece piece){
+        switch(piece){
+            case EMPTY:
+                return INVALID_LAYER;
+            case WHITE_PAWN:
+                return WHITE_PAWN_LAYER;
+            case WHITE_KNIGHT:
+                return WHITE_KNIGHT_LAYER;
+            case WHITE_BISHOP:
+                return WHITE_BISHOP_LAYER;
+            case WHITE_ROOK:
+                return WHITE_ROOK_LAYER;
+            case WHITE_QUEEN:
+                return WHITE_QUEEN_LAYER;
+            case WHITE_KING:
+                return WHITE_KING_LAYER;
+            case BLACK_PAWN:
+                return BLACK_PAWN_LAYER;
+            case BLACK_KNIGHT:
+                return BLACK_KNIGHT_LAYER;
+            case BLACK_BISHOP:
+                return BLACK_BISHOP_LAYER;
+            case BLACK_ROOK:
+                return BLACK_ROOK_LAYER;
+            case BLACK_QUEEN:
+                return BLACK_QUEEN_LAYER;
+            case BLACK_KING:
+                return BLACK_KING_LAYER;
+            default:
+                return INVALID_LAYER;
+        }
+    }
+
+    void Board::make_move(Move* move){
+        U8 from_layer = move->get_from_layer();
+        U8 from_square = move->get_from_square();
+        U8 to_layer = move->get_to_layer();
+        U8 to_square = move->get_to_square();
+        U8 take = move->get_take_square();
+        U64 from_mask = U64(1) << from_square;
+        U64 to_mask = U64(1) << to_square;
+        U64 take_mask = U64(1) << take;
+        for(int l = 0; l < NB_LAYERS; l++){
+            board[l] &= ~(from_mask | to_mask | take_mask);
+        }
+        board[to_layer] |= to_mask;
+    }
+
     void Board::print(){
         for(int l = 0; l < NB_LAYERS; l++){
             std::bitset<64> bs(board[l]);
@@ -111,7 +120,7 @@ namespace chess {
         }
     }
 
-    Position::Position() : board(Board()){
+    Position::Position() : board(){
         reset();
     }
 
