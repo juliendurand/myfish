@@ -50,12 +50,10 @@ namespace uci {
             std::stringstream ss = std::stringstream(line);
             std::string token;
             std::string cmd;
-            std::vector<std::string> params;
+            std::string params;
 
             getline(ss, cmd, ' ');
-            while(getline(ss, token, ' ')){
-                params.push_back(token);
-            }
+            params = ss.str();
 
             if(cmd == "uci") { uci(params); }
             else if(cmd == "debug") { uci_debug(params); }
@@ -78,69 +76,72 @@ namespace uci {
         }
     }
 
-    void UCIEngine::uci(const std::vector<std::string> &params){
+    void UCIEngine::uci(const std::string &params){
         std::cout << "id name Myfish" << std::endl;
         std::cout << "id author Julien Durand" << std::endl;
         std::cout << "uciok" << std::endl;
     }
 
-    void UCIEngine::uci_debug(const std::vector<std::string> &params){
-        for(std::string p : params){
-            if(p == "on") { debug = true; break; }
-            else if(p == "off") { debug = false; break; }
+    void UCIEngine::uci_debug(const std::string &params){
+        std::stringstream ss = std::stringstream(params);
+        std::string param;
+        for(;;){
+            getline(ss, param, ' ');
+            if(param == "on") { debug = true; break; }
+            else if(param == "off") { debug = false; break; }
         }
     }
 
-    void UCIEngine::uci_isready(const std::vector<std::string> &params){
+    void UCIEngine::uci_isready(const std::string &params){
         std::cout << "readyok" << std::endl;
     }
 
-    void UCIEngine::uci_setoption(const std::vector<std::string> &params){
+    void UCIEngine::uci_setoption(const std::string &params){
         /*unimplemented*/
     }
 
-    void UCIEngine::uci_register(const std::vector<std::string> &params){
+    void UCIEngine::uci_register(const std::string &params){
         /*unimplemented*/
     }
 
-    void UCIEngine::uci_newgame(const std::vector<std::string> &params){
+    void UCIEngine::uci_newgame(const std::string &params){
         position.reset();
     }
 
-    void UCIEngine::uci_position(const std::vector<std::string> &params){
-        for(std::string p : params){
-            if(p == "startpos") { /*unimplemented*/ break; }
-            else if(p == "fen") {
-                std::vector<std::string> new_params(params.begin() + 1, params.end());
-                std::string fen = join(new_params, ' ');
-                position.import_fen(fen);
+    void UCIEngine::uci_position(const std::string &params){
+        std::stringstream ss = std::stringstream(params);
+        std::string param;
+        for(;;){
+            getline(ss, param, ' ');
+            if(param == "startpos") {
+                /*unimplemented*/ break;
+            } else if(param == "fen") {
+                position.import_fen(ss.str());
                 break;
             }
         }
-        for(std::string p : params){
-            if(p == "moves") { /*unimplemented*/ break; }
-        }
+        //for(std::string p : params){
+        //    if(p == "moves") { /*unimplemented*/ break; }
+        //}
     }
 
-    void UCIEngine::uci_go(const std::vector<std::string> &params){
+    void UCIEngine::uci_go(const std::string &params){
         /*unimplemented*/
     }
 
-    void UCIEngine::uci_stop(const std::vector<std::string> &params){
+    void UCIEngine::uci_stop(const std::string &params){
         /*unimplemented*/
     }
 
-    void UCIEngine::uci_ponderhit(const std::vector<std::string> &params){
+    void UCIEngine::uci_ponderhit(const std::string &params){
         /*unimplemented*/
     }
 
-    void UCIEngine::uci_quit(const std::vector<std::string> &params){
+    void UCIEngine::uci_quit(const std::string &params){
         exit(0);
     }
 
-#include <bitset>
-
-    void UCIEngine::display(const std::vector<std::string> &params){
+    void UCIEngine::display(const std::string &params){
         const std::string rank_separator = "+---+---+---+---+---+---+---+---+";
         const std::string file_separator = "|";
         std::string sb;
@@ -154,36 +155,29 @@ namespace uci {
                 sb += file_separator;
             }
             int square = i % 8 + (7 - i / 8) * 8;
-            sb += ' ';
-            sb += position.board.get_square(square);
-            sb += ' ';
+            sb += " " + std::string(1, position.board.get_square(square))
+                + " ";
             sb += file_separator;
         }
         sb += "\n";
         sb += rank_separator;
         sb += "\n";
-        sb += "Turn: ";
-        sb += position.plies % 2 == 1 ? "white" : "black";
+        sb += "Turn: " + position.get_turn();
         sb += "\n";
-        sb += "Castling rights: ";
-        sb += position.get_all_castling();
+        sb += "Castling rights: " + position.get_all_castling();
         sb += "\n";
-        sb += "En Passant: ";
-        sb += position.get_en_passant();
+        sb += "En Passant: " + position.get_en_passant();
         sb += "\n";
-        sb += "Nb reversible plies: ";
-        sb += std::to_string(position.reversible_plies);
+        sb += "Nb reversible plies: " + std::to_string(position.reversible_plies);
         sb += "\n";
-        sb += "Moves: ";
-        sb += std::to_string((position.plies + 1) / 2);
+        sb += "Moves: " + std::to_string((position.plies + 1) / 2);
         sb += "\n";
-        sb += "Plies: ";
-        sb += std::to_string(position.plies);
+        sb += "Plies: " + std::to_string(position.plies);
         sb += "\n";
         std::cout << sb;
     }
 
-    void UCIEngine::perft(const std::vector<std::string> &params){
+    void UCIEngine::perft(const std::string &params){
         /*unimplemented*/
     }
 

@@ -167,8 +167,8 @@ namespace chess {
         plies = 2 *  moves + turn - 1;
     }
 
-    Color Position::get_turn(){
-        return plies % 2 ? WHITE : BLACK;
+    std::string Position::get_turn(){
+        return std::string(1, plies % 2 ? WHITE : BLACK);
     }
 
     void Position::set_turn(Color color){

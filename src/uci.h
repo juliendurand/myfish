@@ -17,21 +17,21 @@ namespace uci {
         void run();
 
     private:
-        void uci(const std::vector<std::string> &params);
-        void uci_debug(const std::vector<std::string> &params);
-        void uci_isready(const std::vector<std::string> &params);
-        void uci_setoption(const std::vector<std::string> &params);
-        void uci_register(const std::vector<std::string> &params);
-        void uci_newgame(const std::vector<std::string> &params);
-        void uci_position(const std::vector<std::string> &params);
-        void uci_go(const std::vector<std::string> &params);
-        void uci_stop(const std::vector<std::string> &params);
-        void uci_ponderhit(const std::vector<std::string> &params);
-        void uci_quit(const std::vector<std::string> &params);
+        void uci(const std::string &params);
+        void uci_debug(const std::string &params);
+        void uci_isready(const std::string &params);
+        void uci_setoption(const std::string &params);
+        void uci_register(const std::string &params);
+        void uci_newgame(const std::string &params);
+        void uci_position(const std::string &params);
+        void uci_go(const std::string &params);
+        void uci_stop(const std::string &params);
+        void uci_ponderhit(const std::string &params);
+        void uci_quit(const std::string &params);
 
         // Proprietary extensions
-        void display(const std::vector<std::string> &params);
-        void perft(const std::vector<std::string> &params);
+        void display(const std::string &params);
+        void perft(const std::string &params);
     };
 
 }

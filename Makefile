@@ -7,9 +7,10 @@ OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 DEPS := $(OBJS:.o=.d)
 EXEC = $(BIN_DIR)/myfish
 
-CXXFLAGS += -Wall -std=c++11 -O3
-DEPENDFLAGS += -std=c++11
+CXXFLAGS += -Wall -std=c++11 -O3 -MMD -MP
 LDFLAGS +=
+
+MKDIR_P ?= mkdir -p
 
 build: $(OBJS)
 	@$(MKDIR_P) $(BIN_DIR)
@@ -20,14 +21,11 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@$(MKDIR_P) $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-.depend:
-	@$(CXX) $(DEPENDFLAGS) -MM $(DEPS) > $@ 2> /dev/null
-
-.PHONY: clean
-
 clean:
 	@rm -rf $(BUILD_DIR) $(BIN_DIR) .depend
 
+.PHONY: clean
+
 -include $(DEPS)
 
-MKDIR_P ?= mkdir -p
+
