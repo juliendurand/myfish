@@ -72,10 +72,11 @@ namespace chess{
         Position();
         std::string export_fen();
         void import_fen(const std::string &fen);
-        std::string get_turn();
+        Color get_turn();
         void set_turn(Color color);
         void set_castling(Piece cast_type, bool right);
         bool get_castling(Piece cast_type);
+        void set_en_passant(std::string ep);
         std::string get_en_passant();
         std::string get_all_castling();
         void reset();

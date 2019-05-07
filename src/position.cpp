@@ -14,7 +14,9 @@ namespace chess {
             Board::BLACK_ROOK, Board::BLACK_QUEEN, Board::BLACK_KING
         };
 
-    int coordinates_to_square(char file, char rank){
+    int coordinates_to_square(std::string coordinates){
+        char file = coordinates[0];
+        char rank = coordinates[1];
         if (file < 'a' || file > 'h' || rank < '1' || rank > '8'){
             return -1; // TODO throw Exception ?
         }
@@ -155,7 +157,7 @@ namespace chess {
 
         // en passant square
         getline(ss, token, sep);
-        // TODO en passant
+        set_en_passant(token);
 
         // nb reversible plies
         getline(ss, token, sep);
@@ -241,8 +243,17 @@ namespace chess {
         return castling;
     }
 
+    void Position::set_en_passant(std::string ep){
+        int square = coordinates_to_square(ep);
+        if(square <= 0) {
+            en_passant = 0;
+            return;
+        }
+        en_passant = U8(1) << (square % 8);
+    }
+
     std::string Position::get_en_passant(){
-        return square_to_coordinate(en_passant);
+        return __builtin_ffs(en_passant) + (get_turn() == WHITE ? "2" : "7");
     }
 
     void Position::reset(){
