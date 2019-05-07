@@ -24,7 +24,7 @@ namespace chess {
     }
 
     std::string square_to_coordinate(int square){
-        std::string  file(1, char('a' + square % 8));
+        std::string file(1, char('a' + square % 8));
         std::string rank(1, char('1' + square / 8));
         return file + rank;
     }
@@ -113,14 +113,41 @@ namespace chess {
 
     Position::Position() : board(Board()){
         reset();
-        const std::string START_POSITION =
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        import_fen(START_POSITION);
+    }
+
+    void Position::set_start_position(){
+        import_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     }
 
     std::string Position::export_fen(){
-        // TODO
-        return "";
+        std::string fen;
+        int nb_empty = 0;
+        for(int i = 0; i < 64; i++){
+            int file = i % 8;
+            int rank = i / 8;
+            Piece piece = board.get_square((7 - rank) * 8 + file);
+            if(piece == Board::EMPTY){
+                nb_empty++;
+            } else {
+                if(nb_empty > 0){
+                    fen += std::to_string(nb_empty);
+                    nb_empty = 0;
+                }
+                fen += piece;
+            }
+            if(i % 8 == 7 && i != 63){
+                if(nb_empty > 0){
+                    fen += std::to_string(nb_empty);
+                    nb_empty = 0;
+                }
+                fen += "/";
+            }
+        }
+        return fen + " " + std::string(1, get_turn())
+            + " " + get_all_castling()
+            + " " + get_en_passant()
+            + " " + std::to_string(get_reversible_plies())
+            + " " + std::to_string(get_move());
     }
 
     void Position::import_fen(const std::string &fen){
@@ -169,8 +196,8 @@ namespace chess {
         plies = 2 *  moves + turn - 1;
     }
 
-    std::string Position::get_turn(){
-        return std::string(1, plies % 2 ? WHITE : BLACK);
+    Color Position::get_turn(){
+        return plies % 2 ? WHITE : BLACK;
     }
 
     void Position::set_turn(Color color){
@@ -253,7 +280,27 @@ namespace chess {
     }
 
     std::string Position::get_en_passant(){
-        return __builtin_ffs(en_passant) + (get_turn() == WHITE ? "2" : "7");
+        if(!en_passant){
+            return "-";
+        }
+        return std::string(1, 'a' + __builtin_ffs(en_passant) - 1)
+               + (get_turn() == WHITE ? "6" : "3");
+    }
+
+    int Position::get_move(){
+        return (plies + 1) / 2;
+    }
+
+    int Position::get_plies(){
+        return plies;
+    }
+
+    int Position::get_reversible_plies(){
+        return reversible_plies;
+    }
+
+    std::string Position::get_square(int square){
+        return std::string(1, board.get_square(square));
     }
 
     void Position::reset(){

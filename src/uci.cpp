@@ -69,6 +69,7 @@ namespace uci {
 
             // Proprietary extensions
             else if(cmd == "display") { display(params);  }
+            else if(cmd == "fen") { fen(params);  }
             else if(cmd == "perft") { perft(params);  }
 
             // default
@@ -114,9 +115,11 @@ namespace uci {
         for(;;){
             getline(ss, param, ' ');
             if(param == "startpos") {
-                /*unimplemented*/ break;
+                position.set_start_position();
+                break;
             } else if(param == "fen") {
-                position.import_fen(ss.str());
+                getline(ss, param);
+                position.import_fen(param);
                 break;
             }
         }
@@ -150,31 +153,26 @@ namespace uci {
                 if(i > 0) {
                     sb += "\n";
                 }
-                sb += rank_separator;
-                sb += "\n";
+                sb += rank_separator + "\n";
                 sb += file_separator;
             }
             int square = i % 8 + (7 - i / 8) * 8;
-            sb += " " + std::string(1, position.board.get_square(square))
-                + " ";
+            sb += " " + position.get_square(square) + " ";
             sb += file_separator;
         }
-        sb += "\n";
-        sb += rank_separator;
-        sb += "\n";
-        sb += "Turn: " + position.get_turn();
-        sb += "\n";
-        sb += "Castling rights: " + position.get_all_castling();
-        sb += "\n";
-        sb += "En Passant: " + position.get_en_passant();
-        sb += "\n";
-        sb += "Nb reversible plies: " + std::to_string(position.reversible_plies);
-        sb += "\n";
-        sb += "Moves: " + std::to_string((position.plies + 1) / 2);
-        sb += "\n";
-        sb += "Plies: " + std::to_string(position.plies);
-        sb += "\n";
+        sb += "\n" + rank_separator + "\n";
+        sb += "Turn: " + std::string(1, position.get_turn()) + "\n";
+        sb += "Castling rights: " + position.get_all_castling() + "\n";
+        sb += "En Passant: " + position.get_en_passant() + "\n";
+        sb += "Nb reversible plies: " +
+            std::to_string(position.get_reversible_plies()) + "\n";
+        sb += "Moves: " + std::to_string(position.get_move()) + "\n";
+        sb += "Plies: " + std::to_string(position.get_plies()) + "\n";
         std::cout << sb;
+    }
+
+    void UCIEngine::fen(const std::string &params){
+        std::cout << position.export_fen() << std::endl;
     }
 
     void UCIEngine::perft(const std::string &params){

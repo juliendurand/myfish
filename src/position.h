@@ -54,7 +54,15 @@ namespace chess{
         U64 get_bitmask(int square);
     };
 
-    struct Position{
+    class Position{
+    private:
+        Board board;
+        U8 castling;
+        U8 en_passant;
+        int plies;
+        int reversible_plies;
+
+    public:
         static const U8 WHITE_KINGSIDE_CAST  = U8(1) << 0;
         static const U8 WHITE_QUEENSIDE_CAST = U8(1) << 1;
         static const U8 BLACK_KINGSIDE_CAST  = U8(1) << 2;
@@ -63,13 +71,8 @@ namespace chess{
         static const Color WHITE = 'w';
         static const Color BLACK = 'b';
 
-        Board board;
-        U8 castling;
-        U8 en_passant;
-        int plies;
-        int reversible_plies;
-
         Position();
+        void set_start_position();
         std::string export_fen();
         void import_fen(const std::string &fen);
         Color get_turn();
@@ -79,6 +82,10 @@ namespace chess{
         void set_en_passant(std::string ep);
         std::string get_en_passant();
         std::string get_all_castling();
+        int get_move();
+        int get_plies();
+        int get_reversible_plies();
+        std::string get_square(int square);
         void reset();
     };
 
