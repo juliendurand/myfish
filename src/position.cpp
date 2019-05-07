@@ -14,11 +14,17 @@ namespace chess {
             Board::BLACK_ROOK, Board::BLACK_QUEEN, Board::BLACK_KING
         };
 
-    int coordinates_to_square(int file, int rank){
-        if (file < 'a' || file > 'h' || rank < 1 || rank > 8){
+    int coordinates_to_square(char file, char rank){
+        if (file < 'a' || file > 'h' || rank < '1' || rank > '8'){
             return -1; // TODO throw Exception ?
         }
         return (file - 'a') + (rank - 1) * 8;
+    }
+
+    std::string square_to_coordinate(int square){
+        std::string  file(1, char('a' + square % 8));
+        std::string rank(1, char('1' + square / 8));
+        return file + rank;
     }
 
     Board::Board(){
@@ -26,8 +32,7 @@ namespace chess {
     }
 
     U64 Board::get_bitmask(int square){
-        U64 bitmask = 1;
-        return bitmask << square;
+        return U64(1) << square;
     }
 
     void Board::set_square(Piece piece, int square){
@@ -112,6 +117,7 @@ namespace chess {
     }
 
     std::string Position::export_fen(){
+        // TODO
         return "";
     }
 
@@ -121,6 +127,7 @@ namespace chess {
         std::stringstream ss = std::stringstream(fen);
         std::string token;
 
+        // board
         getline(ss, token, sep);
         int square = 56;
         for(char c : token){
@@ -128,47 +135,44 @@ namespace chess {
                 square += c - '0'; // n empty squares
                 continue;
             }
-            switch(c){
-                case '/':
-                    square -= 16;
-                    break;
-                case Board::WHITE_PAWN:
-                case Board::WHITE_KNIGHT:
-                case Board::WHITE_BISHOP:
-                case Board::WHITE_ROOK:
-                case Board::WHITE_QUEEN:
-                case Board::WHITE_KING:
-                case Board::BLACK_PAWN:
-                case Board::BLACK_KNIGHT:
-                case Board::BLACK_BISHOP:
-                case Board::BLACK_ROOK:
-                case Board::BLACK_QUEEN:
-                case Board::BLACK_KING:
-                    board.set_square(c, square);
-                    square++;
-                    break;
-                default:
-                    return; // TODO : generate Exception ?
+            if(c == '/'){
+                square -= 16;
+                continue;
             }
+            board.set_square(c, square);
+            square++;
         }
 
+        // turn
         getline(ss, token, sep);
         int turn = (token == "b") ? 1 : 0;
 
+        // castling rights
         getline(ss, token, sep);
         for(char c : token){
             set_castling(c, true);
         }
 
+        // en passant square
         getline(ss, token, sep);
         // TODO en passant
 
+        // nb reversible plies
         getline(ss, token, sep);
         reversible_plies = std::stoi(token);
 
+        // nb moves
         getline(ss, token, sep);
         int moves = std::stoi(token);
         plies = 2 *  moves + turn - 1;
+    }
+
+    Color Position::get_turn(){
+        return plies % 2 ? WHITE : BLACK;
+    }
+
+    void Position::set_turn(Color color){
+        // turn is set from nb of moves
     }
 
     void Position::set_castling(Piece cast_type, bool right){
@@ -190,9 +194,9 @@ namespace chess {
                 return;
         }
         if(right){
-            status |= cast_mask;
+            castling |= cast_mask;
         } else {
-            status &= ~cast_mask;
+            castling &= ~cast_mask;
         }
     }
 
@@ -214,7 +218,7 @@ namespace chess {
             default:
                 break; // TODO : generate Exception ?
         }
-        return bool(status & cast_mask);
+        return bool(castling & cast_mask);
     }
 
     std::string Position::get_all_castling(){
@@ -238,12 +242,13 @@ namespace chess {
     }
 
     std::string Position::get_en_passant(){
-        return "-"; // TODO
+        return square_to_coordinate(en_passant);
     }
 
     void Position::reset(){
         board.empty();
-        status = 0;
+        castling = 0;
+        en_passant = 0;
         plies = 1;
         reversible_plies = 0;
     }

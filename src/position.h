@@ -6,7 +6,9 @@
 namespace chess{
 
     typedef uint64_t U64;
+    typedef uint8_t U8;
     typedef char Piece;
+    typedef char Color;
 
     struct Board{
         static const Piece EMPTY = ' ';
@@ -53,19 +55,25 @@ namespace chess{
     };
 
     struct Position{
-        static const U64 WHITE_KINGSIDE_CAST  = (1ULL << 0);
-        static const U64 WHITE_QUEENSIDE_CAST = (1ULL << 1);
-        static const U64 BLACK_KINGSIDE_CAST  = (1ULL << 2);
-        static const U64 BLACK_QUEENSIDE_CAST = (1ULL << 3);
+        static const U8 WHITE_KINGSIDE_CAST  = U8(1) << 0;
+        static const U8 WHITE_QUEENSIDE_CAST = U8(1) << 1;
+        static const U8 BLACK_KINGSIDE_CAST  = U8(1) << 2;
+        static const U8 BLACK_QUEENSIDE_CAST = U8(1) << 3;
 
-        U64 status;
+        static const Color WHITE = 'w';
+        static const Color BLACK = 'b';
+
         Board board;
+        U8 castling;
+        U8 en_passant;
         int plies;
         int reversible_plies;
 
         Position();
         std::string export_fen();
         void import_fen(const std::string &fen);
+        Color get_turn();
+        void set_turn(Color color);
         void set_castling(Piece cast_type, bool right);
         bool get_castling(Piece cast_type);
         std::string get_en_passant();

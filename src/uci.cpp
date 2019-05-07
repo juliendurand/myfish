@@ -44,7 +44,6 @@ namespace uci {
 
     void UCIEngine::run(){
         std::string line;
-        std::cout << "> ";
         while(getline(std::cin, line)){
             line = remove_duplicate_whitespaces(line);
             line = trim(line);
@@ -76,7 +75,6 @@ namespace uci {
 
             // default
             else { std::cout << "unknonwn command: " << cmd << std::endl; }
-            std::cout << "> ";
         }
     }
 
