@@ -43,6 +43,7 @@ namespace uci {
 
 
     void UCIEngine::run(){
+        position = new chess::Position();
         std::string line;
         while(getline(std::cin, line)){
             line = remove_duplicate_whitespaces(line);
@@ -68,9 +69,10 @@ namespace uci {
             else if(cmd == "quit") { uci_quit(params); }
 
             // Proprietary extensions
-            else if(cmd == "display") { display(params);  }
-            else if(cmd == "fen") { fen(params);  }
-            else if(cmd == "perft") { perft(params);  }
+            else if(cmd == "display") { display(params); }
+            else if(cmd == "fen") { fen(params); }
+            else if(cmd == "movegen") { movegen(params); }
+            else if(cmd == "perft") { perft(params); }
 
             // default
             else { std::cout << "unknonwn command: " << cmd << std::endl; }
@@ -106,7 +108,7 @@ namespace uci {
     }
 
     void UCIEngine::uci_newgame(const std::string &params){
-        position.reset();
+        position->reset();
     }
 
     void UCIEngine::uci_position(const std::string &params){
@@ -115,11 +117,11 @@ namespace uci {
         for(;;){
             getline(ss, param, ' ');
             if(param == "startpos") {
-                position.set_start_position();
+                position->set_start_position();
                 break;
             } else if(param == "fen") {
                 getline(ss, param);
-                position.import_fen(param);
+                position->import_fen(param);
                 break;
             }
         }
@@ -157,22 +159,32 @@ namespace uci {
                 sb += file_separator;
             }
             int square = i % 8 + (7 - i / 8) * 8;
-            sb += " " + position.get_square(square) + " ";
+            sb += " " + position->get_square(square) + " ";
             sb += file_separator;
         }
         sb += "\n" + rank_separator + "\n";
-        sb += "Turn: " + std::string(1, position.get_turn()) + "\n";
-        sb += "Castling rights: " + position.get_all_castling() + "\n";
-        sb += "En Passant: " + position.get_en_passant() + "\n";
+        sb += "Turn: " + std::string(1, position->get_turn()) + "\n";
+        sb += "Castling rights: " + position->get_all_castling() + "\n";
+        sb += "En Passant: " + position->get_en_passant() + "\n";
         sb += "Nb reversible plies: " +
-            std::to_string(position.get_reversible_plies()) + "\n";
-        sb += "Moves: " + std::to_string(position.get_move()) + "\n";
-        sb += "Plies: " + std::to_string(position.get_plies()) + "\n";
+            std::to_string(position->get_reversible_plies()) + "\n";
+        sb += "Moves: " + std::to_string(position->get_move()) + "\n";
+        sb += "Plies: " + std::to_string(position->get_plies()) + "\n";
         std::cout << sb;
     }
 
     void UCIEngine::fen(const std::string &params){
-        std::cout << position.export_fen() << std::endl;
+        std::cout << position->export_fen() << std::endl;
+    }
+
+    void UCIEngine::movegen(const std::string &params){
+        chess::MoveGenerator* generator = new chess::MoveGenerator(position);
+        chess::Move* move = new chess::Move();
+        while(generator->next(move)){
+            std::cout << move->to_long_algebraic() << std::endl;
+        }
+        delete move;
+        delete generator;
     }
 
     void UCIEngine::perft(const std::string &params){

@@ -14,21 +14,6 @@ namespace chess {
             Board::BLACK_ROOK, Board::BLACK_QUEEN, Board::BLACK_KING
         };
 
-    int coordinates_to_square(std::string coordinates){
-        char file = coordinates[0];
-        char rank = coordinates[1];
-        if (file < 'a' || file > 'h' || rank < '1' || rank > '8'){
-            return -1; // TODO throw Exception ?
-        }
-        return (file - 'a') + (rank - 1) * 8;
-    }
-
-    std::string square_to_coordinate(int square){
-        std::string file(1, char('a' + square % 8));
-        std::string rank(1, char('1' + square / 8));
-        return file + rank;
-    }
-
     Board::Board(){
         empty();
     }
@@ -98,8 +83,23 @@ namespace chess {
         }
     }
 
+    int Board::coordinates_to_square(std::string coordinates){
+        char file = coordinates[0];
+        char rank = coordinates[1];
+        if (file < 'a' || file > 'h' || rank < '1' || rank > '8'){
+            return -1; // TODO throw Exception ?
+        }
+        return (file - 'a') + (rank - 1) * 8;
+    }
+
+    std::string Board::square_to_coordinate(int square){
+        std::string file(1, char('a' + square % 8));
+        std::string rank(1, char('1' + square / 8));
+        return file + rank;
+    }
+
     void Board::make_move(Move* move){
-        U8 from_layer = move->get_from_layer();
+        // U8 from_layer = move->get_from_layer();
         U8 from_square = move->get_from_square();
         U8 to_layer = move->get_to_layer();
         U8 to_square = move->get_to_square();
@@ -280,7 +280,7 @@ namespace chess {
     }
 
     void Position::set_en_passant(std::string ep){
-        int square = coordinates_to_square(ep);
+        int square = Board::coordinates_to_square(ep);
         if(square <= 0) {
             en_passant = 0;
             return;

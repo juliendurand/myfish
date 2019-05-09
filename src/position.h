@@ -50,6 +50,8 @@ namespace chess{
         void empty();
         static Piece get_piece(int layer);
         static int get_layer(Piece piece);
+        static int coordinates_to_square(std::string coordinates);
+        static std::string square_to_coordinate(int square);
         void make_move(Move* move);
         void print();
 
@@ -58,6 +60,9 @@ namespace chess{
     };
 
     class Position{
+
+        friend class MoveGenerator;
+
     private:
         Board board;
         U8 castling;

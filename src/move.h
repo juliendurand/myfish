@@ -2,6 +2,7 @@
 #define MOVE_H_INCLUDED
 
 #include <string>
+#include <vector>
 
 #include "position.h"
 #include "utils.h"
@@ -31,35 +32,50 @@ namespace chess {
         bool is_promotion();
         void from_long_algebraic(const std::string &m, Board* board);
         std::string to_long_algebraic();
-        void from_san(const std::string &m, Board* board);
-        std::string to_san();
     };
 
-    struct MoveGenerator{
+    class MoveGenerator{
     private:
         Position* position;
         Move *move;
-        Board* to_board;
+        std::vector<Move> moveList
+        ;
+        //Board* to_board;
         int turn;
+        int opponent;
         int layer;
         U64 square_mask;
         int seq;
         U64 own_pieces;
         U64 opponent_pieces;
-        int king_square;
+        U64 all_pieces;
+        U64 free_square;
 
     public:
         MoveGenerator(Position* pos);
+        int generate();
         bool next(Move *m);
         bool ischeck();
         bool next_pseudo_legal();
         bool next_white_pawn();
+        bool next_black_pawn();
         bool next_knight();
         bool next_bishop();
         bool next_rook();
         bool next_queen();
-        bool next_white_king();
-        bool next_black_king();
+        bool next_king();
+        void generate_move_bitscan(int layer, int from, U64 bits);
+        U64 generate_pawn_pushes(U64 layer, Color color, U64 notSelf);
+        U64 generate_pawn_double_pushes(U64 layer, Color color, U64 notSelf);
+        U64 generate_pawn_en_passant(U64 layer, Color color, U64 notSelf);
+        U64 generate_pawn_attacks(U64 layer, Color color, U64 notSelf);
+        U64 generate_knight_attacks(U64 layer, U64 notSelf);
+        U64 generate_bishop_attacks(U64 layer, U64 notSelf);
+        U64 generate_rook_attacks(U64 layer, U64 notSelf);
+        U64 generate_queen_attacks(U64 layer, U64 notSelf);
+        U64 generate_king_attacks(U64 layer, U64 notSelf);
+        U64 expandBishop(U64 layer);
+        U64 expandRook(U64 layer);
     };
 
 }
