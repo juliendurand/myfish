@@ -38,8 +38,6 @@ namespace chess {
     private:
         Position* position;
         Move *move;
-        std::vector<Move> moveList
-        ;
         //Board* to_board;
         int turn;
         int opponent;
@@ -52,10 +50,12 @@ namespace chess {
         U64 free_square;
 
     public:
+        std::vector<Move> moveList;
+
         MoveGenerator(Position* pos);
         int generate();
         bool next(Move *m);
-        bool ischeck();
+        bool ischeck(Move* m);
         bool next_pseudo_legal();
         bool next_white_pawn();
         bool next_black_pawn();
@@ -70,9 +70,9 @@ namespace chess {
         U64 generate_pawn_en_passant(U64 layer, Color color, U64 notSelf);
         U64 generate_pawn_attacks(U64 layer, Color color, U64 notSelf);
         U64 generate_knight_attacks(U64 layer, U64 notSelf);
-        U64 generate_bishop_attacks(U64 layer, U64 notSelf);
-        U64 generate_rook_attacks(U64 layer, U64 notSelf);
-        U64 generate_queen_attacks(U64 layer, U64 notSelf);
+        U64 generate_bishop_attacks(U64 layer, U64 notSelf, U64 free_square);
+        U64 generate_rook_attacks(U64 layer, U64 notSelf, U64 free_square);
+        U64 generate_queen_attacks(U64 layer, U64 notSelf, U64 free_square);
         U64 generate_king_attacks(U64 layer, U64 notSelf);
         U64 expandBishop(U64 layer);
         U64 expandRook(U64 layer);

@@ -178,12 +178,16 @@ namespace uci {
     }
 
     void UCIEngine::movegen(const std::string &params){
-        chess::MoveGenerator* generator = new chess::MoveGenerator(position);
-        chess::Move* move = new chess::Move();
-        while(generator->next(move)){
-            std::cout << move->to_long_algebraic() << std::endl;
+        for(int i=0; i < 1000000; i++){
+            chess::MoveGenerator* generator = new chess::MoveGenerator(position);
+            generator->generate();
         }
-        delete move;
+
+        chess::MoveGenerator* generator = new chess::MoveGenerator(position);
+        generator->generate();
+        for(chess::Move m : generator->moveList){
+            std::cout << m.to_long_algebraic() << std::endl;
+        }
         delete generator;
     }
 

@@ -73,7 +73,7 @@ namespace chess {
 
     std::string Move::to_long_algebraic(){
         return Board::square_to_coordinate(get_from_square())
-        + Board::square_to_coordinate(get_to_square());
+             + Board::square_to_coordinate(get_to_square());
     }
 
     /*
@@ -85,286 +85,125 @@ namespace chess {
         turn = position->get_turn() == Position::WHITE ? 0 : Board::NB_LAYERS / 2;
         opponent = (turn + Board::NB_LAYERS / 2) % Board::NB_LAYERS;
         layer = 0;
-        square_mask = ~U64(0);;
+        square_mask = ~U64(0);
         seq = 0;
         own_pieces = position->board.board[turn]
-            + position->board.board[turn + 1]
-            + position->board.board[turn + 2]
-            + position->board.board[turn + 3]
-            + position->board.board[turn + 4]
-            + position->board.board[turn + 5];
+            | position->board.board[turn + 1]
+            | position->board.board[turn + 2]
+            | position->board.board[turn + 3]
+            | position->board.board[turn + 4]
+            | position->board.board[turn + 5];
         opponent_pieces = position->board.board[opponent]
-            + position->board.board[opponent + 1]
-            + position->board.board[opponent + 2]
-            + position->board.board[opponent + 3]
-            + position->board.board[opponent + 4]
-            + position->board.board[opponent + 5];
+            | position->board.board[opponent + 1]
+            | position->board.board[opponent + 2]
+            | position->board.board[opponent + 3]
+            | position->board.board[opponent + 4]
+            | position->board.board[opponent + 5];
         all_pieces = own_pieces & opponent_pieces;
         free_square = ~all_pieces;
     }
 
     int MoveGenerator::generate(){
-        return 0;
-    }
-
-    bool MoveGenerator::next(Move *m){
         U64 notOwnPieces = ~own_pieces;
-        printBitset("Pawns attacks", generate_pawn_attacks(position->board.board[Board::WHITE_PAWN_LAYER], position->get_turn(), notOwnPieces));
-        printBitset("Knight attacks", generate_knight_attacks(position->board.board[Board::WHITE_KNIGHT_LAYER], notOwnPieces));
-        printBitset("Bishop attacks", generate_bishop_attacks(position->board.board[Board::WHITE_BISHOP_LAYER], notOwnPieces));
-        printBitset("Rook attacks", generate_rook_attacks(position->board.board[Board::WHITE_ROOK_LAYER], notOwnPieces));
-        printBitset("Queen attacks", generate_queen_attacks(position->board.board[Board::WHITE_QUEEN_LAYER], notOwnPieces));
-        printBitset("King attacks", generate_king_attacks(position->board.board[Board::WHITE_KING_LAYER], notOwnPieces));
-        std::cout << "Check ? " << ischeck() << std::endl;
-        return false;
-        move = m;
-        while(next_pseudo_legal()){
-            if(!ischeck()){
-                return true;
-            }
-        }
-        return false;
-    }
+        int layer;
+        U64 pieces;
+        U64 movebits;
 
-    bool MoveGenerator::ischeck(){
-        U64 attacks = 0;
-        U64 notOpponentPieces = ~opponent_pieces;
-        attacks |= generate_pawn_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER], position->get_turn(), notOpponentPieces);
-        attacks |= generate_knight_attacks(position->board.board[opponent + Board::WHITE_KNIGHT_LAYER], notOpponentPieces);
-        attacks |= generate_bishop_attacks(position->board.board[opponent + Board::WHITE_BISHOP_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER], notOpponentPieces);
-        attacks |= generate_rook_attacks(position->board.board[opponent + Board::WHITE_ROOK_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER], notOpponentPieces);
-        printBitset("opponent attacks", attacks);
-        return (attacks & position->board.board[turn + Board::WHITE_KING_LAYER]) != 0;
-    }
+        layer = turn + Board::WHITE_PAWN_LAYER;
+        pieces = position->board.board[layer];
+        if(pieces) do {
+            int from = __builtin_ffsll(pieces) - 1;
+            U64 p = U64(1) << from;
+            movebits = generate_pawn_pushes(p, position->get_turn(), notOwnPieces);
+            generate_move_bitscan(layer, from, movebits);
+            movebits = generate_pawn_double_pushes(p, position->get_turn(), notOwnPieces);
+            generate_move_bitscan(layer, from, movebits);
+            movebits = generate_pawn_attacks(p, position->get_turn(), notOwnPieces);
+            generate_move_bitscan(layer, from, movebits & (opponent_pieces | position->en_passant));
+        } while (pieces &= pieces - 1); // reset LS1B
 
-    bool MoveGenerator::next_pseudo_legal(){
-        while(layer < turn + Board::NB_LAYERS / 2){
-            switch(turn + layer){
-                case Board::WHITE_PAWN_LAYER:
-                    if(next_white_pawn()){
-                        return true;
-                    }
-                    break;
-                case Board::WHITE_KNIGHT_LAYER:
-                    if(next_knight()){
-                        return true;
-                    }
-                    break;
-                case Board::WHITE_BISHOP_LAYER:
-                    if(next_bishop()){
-                        return true;
-                    }
-                    break;
-                case Board::WHITE_ROOK_LAYER:
-                    if(next_rook()){
-                        return true;
-                    }
-                    break;
-                case Board::WHITE_QUEEN_LAYER:
-                    if(next_queen()){
-                        return true;
-                    }
-                    break;
-                case Board::WHITE_KING_LAYER:
-                    if(next_king()){
-                        return true;
-                    }
-                    break;
-                case Board::BLACK_PAWN_LAYER:
-                    if(next_black_pawn()){
-                        return true;
-                    }
-                    break;
-                case Board::BLACK_KNIGHT_LAYER:
-                    if(next_knight()){
-                        return true;
-                    }
-                    break;
-                case Board::BLACK_BISHOP_LAYER:
-                    if(next_bishop()){
-                        return true;
-                    }
-                    break;
-                case Board::BLACK_ROOK_LAYER:
-                    if(next_rook()){
-                        return true;
-                    }
-                    break;
-                case Board::BLACK_QUEEN_LAYER:
-                    if(next_queen()){
-                        return true;
-                    }
-                    break;
-                case Board::BLACK_KING_LAYER:
-                    if(next_king()){
-                        return true;
-                    }
-                    break;
+        layer = turn + Board::WHITE_KNIGHT_LAYER;
+        pieces = position->board.board[layer];
+        if(pieces) do {
+            int from = __builtin_ffsll(pieces) - 1;
+            U64 p = U64(1) << from;
+            movebits = generate_knight_attacks(p, notOwnPieces);
+            generate_move_bitscan(layer, from, movebits);
+        } while (pieces &= pieces - 1); // reset LS1B
 
-            }
-            layer++;
-            square_mask = ~U64(0);
-            seq = 0;
-        }
-        return false;
-    }
+        layer = turn + Board::WHITE_BISHOP_LAYER;
+        pieces = position->board.board[layer];
+        if(pieces) do {
+            int from = __builtin_ffsll(pieces) - 1;
+            U64 p = U64(1) << from;
+            movebits = generate_bishop_attacks(p, notOwnPieces, free_square);
+            generate_move_bitscan(layer, from, movebits);
+        } while (pieces &= pieces - 1); // reset LS1B
 
-    bool MoveGenerator::next_white_pawn(){
-        std::cout << "next_white_pawn" << std::endl;
-        int l = turn + layer;
-        int ffs = __builtin_ffs(position->board.board[l] & square_mask);
-        if(ffs){
-            int square = ffs - 1;
-            int squarebit = U64(1) << square;
-            switch(seq){
-                case 0:
-                    seq++;
-                    if((square % 8 > 0) && (opponent_pieces & (squarebit << 7))){
-                        move->set(l, square, l, square + 7, U8(0), U8(0));
-                        return true;
-                    }
-                case 1:
-                    seq++;
-                    if(free_square & squarebit << 8){
-                        move->set(l, square, l, square + 8, U8(0), U8(0));
-                        return true;
-                    }
-                case 2:
-                    seq++;
-                    if((square % 8 < 7) && (opponent_pieces & (squarebit << 9))){
-                        move->set(l, square, l, square + 9, U8(0), U8(0));
-                        return true;
-                    }
-                case 3:
-                    seq = 0;
-                    square_mask &= ~squarebit;
-                    if((square / 8 == 1) && (free_square & squarebit << 8) && (free_square & squarebit << 16)){
-                        move->set(l, square, l, square + 16, U8(0), U8(0));
-                        return true;
-                    }
-                // TODO promotion
-                // TODO en passant
-            }
-        }
-        seq = 0;
-        square_mask = 0;
-        return false;
-    }
+        layer = turn + Board::WHITE_ROOK_LAYER;
+        pieces = position->board.board[layer];
+        if(pieces) do {
+            int from = __builtin_ffsll(pieces) - 1;
+            U64 p = U64(1) << from;
+            movebits = generate_rook_attacks(p, notOwnPieces, free_square);
+            generate_move_bitscan(layer, from, movebits);
+        } while (pieces &= pieces - 1); // reset LS1B
 
-    bool MoveGenerator::next_black_pawn(){
-        std::cout << "next_black_pawn" << std::endl;
-        return false;
-    }
+        layer = turn + Board::WHITE_QUEEN_LAYER;
+        pieces = position->board.board[layer];
+        if(pieces) do {
+            int from = __builtin_ffsll(pieces) - 1;
+            U64 p = U64(1) << from;
+            movebits = generate_queen_attacks(p, notOwnPieces, free_square);
+            generate_move_bitscan(layer, from, movebits);
+        } while (pieces &= pieces - 1); // reset LS1B
 
-    bool MoveGenerator::next_knight(){
-        std::cout << "next_knight" << std::endl;
-        int l = turn + layer;
-        int ffs = __builtin_ffs(position->board.board[l] & square_mask);
-        if(ffs){
-            int square = ffs - 1;
-            int squarebit = U64(1) << square;
-            int newpos;
-            int newposbit;
-            switch(seq){
-                case 0:
-                    seq++;
-                    newpos = square + 17;
-                    newposbit = U64(1) << newpos;
-                    if(!(own_pieces & newposbit) && (square % 8 < 7) && (newpos < 64)){
-                        move->set(l, square, l, newpos, U8(0), U8(0));
-                        return true;
-                    }
-                case 1:
-                    seq++;
-                    newpos = square + 10;
-                    newposbit = U64(1) << newpos;
-                    if(!(own_pieces & newposbit) && (square % 8 < 6) && (newpos < 64)){
-                        move->set(l, square, l, newpos, U8(0), U8(0));
-                        return true;
-                    }
-                case 2:
-                    seq++;
-                    newpos = square - 10;
-                    newposbit = U64(1) << newpos;
-                    if(!(own_pieces & newposbit) && (square % 8 < 6) && (newpos >= 0)){
-                        move->set(l, square, l, newpos, U8(0), U8(0));
-                        return true;
-                    }
-                case 3:
-                    seq++;
-                    newpos = square - 17;
-                    newposbit = U64(1) << newpos;
-                    if(!(own_pieces & newposbit) && (square % 8 < 7) && (newpos >= 0)){
-                        move->set(l, square, l, newpos, U8(0), U8(0));
-                        return true;
-                    }
-                case 4:
-                    seq++;
-                    newpos = square - 15;
-                    newposbit = U64(1) << newpos;
-                    if(!(own_pieces & newposbit) && (square % 8 > 0) && (newpos >= 0)){
-                        move->set(l, square, l, newpos, U8(0), U8(0));
-                        return true;
-                    }
-                case 5:
-                    seq++;
-                    newpos = square - 6;
-                    newposbit = U64(1) << newpos;
-                    if(!(own_pieces & newposbit) && (square % 8 > 1) && (newpos >= 0)){
-                        move->set(l, square, l, newpos, U8(0), U8(0));
-                        return true;
-                    }
-                case 6:
-                    seq++;
-                    newpos = square + 6;
-                    newposbit = U64(1) << newpos;
-                    if(!(own_pieces & newposbit) && (square % 8 > 1) && (newpos < 64)){
-                        move->set(l, square, l, newpos, U8(0), U8(0));
-                        return true;
-                    }
-                case 7:
-                    seq = 0;
-                    square_mask &= ~squarebit;
-                    newpos = square + 15;
-                    newposbit = U64(1) << newpos;
-                    if(!(own_pieces & newposbit) && (square % 8 > 0) && (newpos < 64)){
-                        move->set(l, square, l, newpos, U8(0), U8(0));
-                        return true;
-                    }
-            }
-        }
-        seq = 0;
-        square_mask = 0;
-        return false;
-    }
+        layer = turn + Board::WHITE_KING_LAYER;
+        pieces = position->board.board[layer];
+        if(pieces) do {
+            int from = __builtin_ffsll(pieces) - 1;
+            U64 p = U64(1) << from;
+            movebits = generate_king_attacks(p, notOwnPieces);
+            generate_move_bitscan(layer, from, movebits);
+        } while (pieces &= pieces - 1); // reset LS1B
 
-    bool MoveGenerator::next_bishop(){
-        std::cout << "next_bishop" << std::endl;
-        return false;
-    }
+        // TODO generate castling
 
-    bool MoveGenerator::next_rook(){
-        std::cout << "next_rook" << std::endl;
-        return false;
-    }
-
-    bool MoveGenerator::next_queen(){
-        std::cout << "next_queen" << std::endl;
-        return false;
-    }
-
-    bool MoveGenerator::next_king(){
-        std::cout << "next_white_king" << std::endl;
-        return false;
+        return moveList.size();
     }
 
     void MoveGenerator::generate_move_bitscan(int layer, int from, U64 bits){
         if(bits) do {
-            int idx = __builtin_ffs(bits) - 1;
+            int idx = __builtin_ffsll(bits) - 1;
             Move m;
+            //std::cout << "idx: " << idx << " " << bits << std::endl;
             m.set(layer, from, layer, idx, 0, 0);
-            moveList.push_back(m);
+            if(!ischeck(&m)){
+               moveList.push_back(m);
+            }
         } while (bits &= bits - 1); // reset LS1B
+    }
+
+    bool MoveGenerator::ischeck(Move* m){
+        U64 attacks = 0;
+        U64 from = U64(1) << m->get_from_square();
+        U64 to = U64(1) << m->get_to_square();
+        U64 notOpponentPieces = ~opponent_pieces;
+        U64 notOwnPieces = ~((own_pieces & ~from) | to);
+        U64 free_square = notOwnPieces & notOpponentPieces;
+        U64 ourKing = m->get_to_layer() == turn + Board::WHITE_KING_LAYER ? to : position->board.board[turn + Board::WHITE_KING_LAYER];
+
+        attacks |= generate_pawn_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, position->get_turn(), notOpponentPieces);
+        attacks |= generate_knight_attacks(position->board.board[opponent + Board::WHITE_KNIGHT_LAYER] & ~to, notOpponentPieces);
+        attacks |= generate_bishop_attacks((position->board.board[opponent + Board::WHITE_BISHOP_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER]) & ~to, notOpponentPieces, free_square);
+        attacks |= generate_rook_attacks((position->board.board[opponent + Board::WHITE_ROOK_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER]) & ~to, notOpponentPieces, free_square);
+        attacks |= generate_king_attacks(position->board.board[opponent + Board::WHITE_KING_LAYER] & ~to, notOpponentPieces);
+        // printBitset("from", from);
+        // printBitset("to", to);
+        // printBitset("notOpponentPieces", notOpponentPieces);
+        // printBitset("notOwnPieces", notOwnPieces);
+        // printBitset("opponent attacks", attacks);
+        return (attacks & ourKing) != 0;
     }
 
     U64 aFileMask = 0xFEFEFEFEFEFEFEFE;
@@ -385,21 +224,11 @@ namespace chess {
     U64 MoveGenerator::generate_pawn_double_pushes(U64 layer, Color color, U64 notSelf){
         U64 pushes = 0;
         if(color == Position::WHITE){
-            pushes = (layer & 0x00FF000000000000) << 16;
+            pushes = (layer & 0x000000000000FF00) << 16;
         }else{
-            pushes = (layer & 0x000000000000FF00) >> 16;
+            pushes = (layer & 0x00FF000000000000) >> 16;
         }
         return pushes;
-    }
-
-    U64 MoveGenerator::generate_pawn_en_passant(U64 layer, Color color, U64 notSelf){
-        U64 ep = 0;
-        if(color == Position::WHITE){
-            // TODO
-        }else{
-            // TODO
-        }
-        return ep;
     }
 
     U64 MoveGenerator::generate_pawn_attacks(U64 layer, Color color, U64 notSelf){
@@ -426,7 +255,7 @@ namespace chess {
         return attacks & notSelf;
     }
 
-    U64 MoveGenerator::generate_bishop_attacks(U64 layer, U64 notSelf){
+    U64 MoveGenerator::generate_bishop_attacks(U64 layer, U64 notSelf, U64 free_square){
         U64 attacks = (layer & aFileMask) << 7
                    | (layer & aFileMask) >> 9
                    | (layer & hFileMask) << 9
@@ -441,7 +270,7 @@ namespace chess {
         return attacks;
     }
 
-    U64 MoveGenerator::generate_rook_attacks(U64 layer, U64 notSelf){
+    U64 MoveGenerator::generate_rook_attacks(U64 layer, U64 notSelf, U64 free_square){
         U64 attacks = layer << 8
                    | layer >> 8
                    | (layer & hFileMask) << 1
@@ -455,8 +284,10 @@ namespace chess {
         attacks |= expandRook(attacks & free_square) & notSelf;
         return attacks;
     }
-    U64 MoveGenerator::generate_queen_attacks(U64 layer, U64 notSelf){
-        U64 attacks = generate_bishop_attacks(layer, notSelf) | generate_rook_attacks(layer, notSelf);
+
+    U64 MoveGenerator::generate_queen_attacks(U64 layer, U64 notSelf, U64 free_square){
+        U64 attacks = generate_bishop_attacks(layer, notSelf, free_square)
+                    | generate_rook_attacks(layer, notSelf, free_square);
         return attacks & notSelf;
     }
 

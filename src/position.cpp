@@ -292,7 +292,7 @@ namespace chess {
         if(!en_passant){
             return "-";
         }
-        return std::string(1, 'a' + __builtin_ffs(en_passant) - 1)
+        return std::string(1, 'a' + __builtin_ffsll(en_passant) - 1)
                + (get_turn() == WHITE ? "6" : "3");
     }
 
