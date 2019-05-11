@@ -67,7 +67,7 @@ def compare(depth):
     return False
 
 
-for i in range(1, 5):
+for i in range(1, 7):
     print('perft ', i, ': ')
     if not compare(i):
         break

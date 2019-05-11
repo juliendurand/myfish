@@ -22,7 +22,7 @@ namespace chess {
 
     public:
         void set(U8 from_layer, U8 from_square, U8 to_layer, U8 to_square,
-                 U8 take_square, U8 en_passant);
+                 U8 en_passant);
         U8 get_from_layer();
         Piece get_from_piece();
         U8 get_from_square();
@@ -56,7 +56,7 @@ namespace chess {
         MoveGenerator(Position* pos);
         int generate();
         bool ischeck(Move* m);
-        void generate_move_bitscan(int layer, int from, U64 bits);
+        void generate_move_bitscan(int layer, int from, U64 bits, U8 en_passant = 0);
         U64 generate_pawn_pushes(U64 layer, Color color, U64 free_square);
         U64 generate_pawn_double_pushes(U64 layer, Color color, U64 free_square);
         U64 generate_pawn_attacks(U64 layer, Color color, U64 notSelf);
@@ -73,8 +73,6 @@ namespace chess {
         U64 expandSW(U64 layer, U64 notSelf, U64 free_square);
         U64 expandW(U64 layer, U64 notSelf, U64 free_square);
         U64 expandNW(U64 layer, U64 notSelf, U64 free_square);
-        U64 expandBishop(U64 layer);
-        U64 expandRook(U64 layer);
     };
 
 }

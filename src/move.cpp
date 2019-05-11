@@ -48,13 +48,12 @@ namespace chess {
     */
 
     void Move::set(U8 from_layer, U8 from_square, U8 to_layer, U8 to_square,
-             U8 take_square, U8 en_passant){
+             U8 en_passant){
         this->from_layer = from_layer;
         this->from_square = from_square;
         this->to_layer = to_layer;
         this->to_square = to_square;
-        this->take_square = take_square;
-        this->en_passant = en_passant;
+        this->en_passant = 0;
     }
 
     U8 Move::get_from_layer(){
@@ -142,11 +141,11 @@ namespace chess {
             U64 p = U64(1) << from;
             movebits = generate_pawn_pushes(p, position->get_turn(), free_square);
             generate_move_bitscan(layer, from, movebits);
-            //printBitset("pawns", movebits);
             movebits = generate_pawn_double_pushes(p, position->get_turn(), free_square);
-            generate_move_bitscan(layer, from, movebits);
+            generate_move_bitscan(layer, from, movebits, 1);
             movebits = generate_pawn_attacks(p, position->get_turn(), notOwnPieces);
-            generate_move_bitscan(layer, from, movebits & (opponent_pieces | position->en_passant));
+            U64 ep = U64(position->en_passant) << ((turn ? 2 : 5) * 8);
+            generate_move_bitscan(layer, from, movebits & (opponent_pieces | ep));
         } while (pieces &= pieces - 1); // reset LS1B
 
         layer = turn + Board::WHITE_KNIGHT_LAYER;
@@ -200,12 +199,12 @@ namespace chess {
         return moveList.size();
     }
 
-    void MoveGenerator::generate_move_bitscan(int layer, int from, U64 bits){
+    void MoveGenerator::generate_move_bitscan(int layer, int from, U64 bits, U8 en_passant){
         if(bits) do {
             int idx = __builtin_ffsll(bits) - 1;
             Move m;
             //std::cout << "idx: " << idx << " " << bits << std::endl;
-            m.set(layer, from, layer, idx, 0, 0);
+            m.set(layer, from, layer, idx, en_passant);
             if(!ischeck(&m)){
                moveList.push_back(m);
             }
@@ -216,35 +215,39 @@ namespace chess {
         U64 attacks = 0;
         U64 from = U64(1) << m->get_from_square();
         U64 to = U64(1) << m->get_to_square();
-        U64 notOpponentPieces = ~opponent_pieces;
+        U64 notOpponentPieces = ~(opponent_pieces & ~to); // TODO add en passant !!!
         U64 notOwnPieces = ~((own_pieces & ~from) | to);
         U64 free_square = notOwnPieces & notOpponentPieces;
         U64 ourKing = (m->get_to_layer() == turn + Board::WHITE_KING_LAYER) ? to : position->board.board[turn + Board::WHITE_KING_LAYER];
 
-        if(m->to_long_algebraic()=="d7d5"){
+        //if(m->to_long_algebraic()=="d7d5"){
         //    std::cout << opponent << std::endl;
         //printBitset("attacks initial", attacks);
-        attacks |= generate_pawn_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, opponent, notOpponentPieces);
-        printBitset("pawns", attacks);
+        attacks |= generate_pawn_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, position->get_turn() == Position::WHITE ? Position::BLACK : Position::WHITE, notOpponentPieces);
+
+        //printBitset("pawns", attacks);
         attacks |= generate_knight_attacks(position->board.board[opponent + Board::WHITE_KNIGHT_LAYER] & ~to, notOpponentPieces);
-        printBitset("knights", attacks);
+        //printBitset("knights", attacks);
         attacks |= generate_bishop_attacks((position->board.board[opponent + Board::WHITE_BISHOP_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER]) & ~to, notOpponentPieces, free_square);
         //printBitset("free square", free_square);
         //printBitset("Bishop", generate_bishop_attacks(position->board.board[opponent + Board::WHITE_BISHOP_LAYER], ~U64(0), ~U64(0)));
         //printBitset("Bishop", generate_bishop_attacks(position->board.board[opponent + Board::WHITE_BISHOP_LAYER] & ~to, notOpponentPieces, free_square));
-        printBitset("bishop", attacks);
+        //printBitset("bishop", attacks);
         attacks |= generate_rook_attacks((position->board.board[opponent + Board::WHITE_ROOK_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER]) & ~to, notOpponentPieces, free_square);
         //printBitset("attacks initial", attacks);
+        //if(m->to_long_algebraic()=="e7d6"){
+        //    printBitset("rooks", attacks);
+        //}
         attacks |= generate_king_attacks(position->board.board[opponent + Board::WHITE_KING_LAYER] & ~to, notOpponentPieces);
         //printBitset("attacks initial", attacks);
 //
-            std::cout << m->to_long_algebraic() << std::endl;
-            printBitset("from", from);
-            printBitset("to", to);
-            printBitset("notOpponentPieces", notOpponentPieces);
-            printBitset("notOwnPieces", notOwnPieces);
-            printBitset("opponent attacks", attacks);
-        }
+            //std::cout << m->to_long_algebraic() << std::endl;
+            //printBitset("from", from);
+            //printBitset("to", to);
+            //printBitset("notOpponentPieces", notOpponentPieces);
+            //printBitset("notOwnPieces", notOwnPieces);
+            //printBitset("opponent attacks", attacks);
+        //}
         return (attacks & ourKing) != 0;
     }
 
@@ -298,32 +301,18 @@ namespace chess {
     }
 
     U64 MoveGenerator::generate_bishop_attacks(U64 layer, U64 notSelf, U64 free_square){
-        U64 attacks = (layer & aFileMask) << 7
-                   | (layer & aFileMask) >> 9
-                   | (layer & hFileMask) << 9
-                   | (layer & hFileMask) >> 7;
-        attacks &= notSelf;
-        attacks |= expandBishop((attacks & free_square) | layer) & notSelf;
-        attacks |= expandBishop(attacks & free_square) & notSelf;
-        attacks |= expandBishop(attacks & free_square) & notSelf;
-        attacks |= expandBishop(attacks & free_square) & notSelf;
-        attacks |= expandBishop(attacks & free_square) & notSelf;
-        attacks |= expandBishop(attacks & free_square) & notSelf;
+        U64 attacks = expandNE(layer, notSelf, free_square)
+                    | expandSE(layer, notSelf, free_square)
+                    | expandSW(layer, notSelf, free_square)
+                    | expandNW(layer, notSelf, free_square);
         return attacks;
     }
 
     U64 MoveGenerator::generate_rook_attacks(U64 layer, U64 notSelf, U64 free_square){
-        U64 attacks = layer << 8
-                   | layer >> 8
-                   | (layer & hFileMask) << 1
-                   | (layer & aFileMask) >> 1;
-        attacks &= notSelf;
-        attacks |= expandRook((attacks & free_square) | layer) & notSelf;
-        attacks |= expandRook(attacks & free_square) & notSelf;
-        attacks |= expandRook(attacks & free_square) & notSelf;
-        attacks |= expandRook(attacks & free_square) & notSelf;
-        attacks |= expandRook(attacks & free_square) & notSelf;
-        attacks |= expandRook(attacks & free_square) & notSelf;
+        U64 attacks = expandN(layer, notSelf, free_square)
+                    | expandE(layer, notSelf, free_square)
+                    | expandS(layer, notSelf, free_square)
+                    | expandW(layer, notSelf, free_square);
         return attacks;
     }
 
@@ -432,20 +421,4 @@ namespace chess {
         attacks |= (attacks & free_square & aFileMask) << 7;
         return attacks & notSelf;
     }
-
-
-    U64 MoveGenerator::expandBishop(U64 layer){
-        return (layer & (layer << 7)) & aFileMask << 7
-             | (layer & (layer >> 9)) & aFileMask >> 9
-             | (layer & (layer << 9)) & hFileMask << 9
-             | (layer & (layer >> 7)) & hFileMask >> 7;
-    }
-
-    U64 MoveGenerator::expandRook(U64 layer){
-        return (layer & layer << 8) << 8
-             | (layer & layer >> 8) >> 8
-             | (layer & hFileMask & (layer & hFileMask) << 1) << 1
-             | (layer & aFileMask & (layer & aFileMask) >> 1) >> 1;
-    }
-
 }

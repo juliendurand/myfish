@@ -106,9 +106,19 @@ namespace chess {
         // U8 take = move->get_take_square();
         U64 from_mask = U64(1) << from_square;
         U64 to_mask = U64(1) << to_square;
-        //U64 take_mask = U64(1) << take;
+        U64 take_mask = 0; //U64(1) << take;
+        U64 free_squares = ~0;
         for(int l = 0; l < NB_LAYERS; l++){
-            board[l] &= ~(from_mask | to_mask); // | take_mask);
+            free_squares &= ~board[l];
+        }
+        if((to_layer == WHITE_PAWN_LAYER) && (to_mask & free_squares)){
+            take_mask = to_mask >> 8; // en passant
+        }
+        if((to_layer == BLACK_PAWN_LAYER) && (to_mask & free_squares)){
+            take_mask = to_mask << 8; // en passant
+        }
+        for(int l = 0; l < NB_LAYERS; l++){
+            board[l] &= ~(from_mask | to_mask | take_mask);
         }
         board[to_layer] |= to_mask;
     }
@@ -323,6 +333,15 @@ namespace chess {
     void Position::make_move(Move* move){
         plies++;
         board.make_move(move);
+        en_passant = 0;
+        if(move->get_from_layer() == Board::WHITE_PAWN_LAYER
+            && (move->get_to_square() - move->get_from_square() == 16)){
+            en_passant =  U8(1) << ((move->get_to_square() - 8) % 8);
+        }
+        if(move->get_from_layer() == Board::BLACK_PAWN_LAYER
+            && (move->get_to_square() - move->get_from_square() == -16)){
+            en_passant =  U8(1) << ((move->get_to_square() + 8) % 8);
+        }
     }
 
     Move Position::get_move_from_long_algebraic(const std::string &m){
