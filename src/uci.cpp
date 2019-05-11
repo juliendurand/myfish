@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <iostream>
 #include <sstream>
 
@@ -125,9 +126,15 @@ namespace uci {
                 break;
             }
         }
-        //for(std::string p : params){
-        //    if(p == "moves") { /*unimplemented*/ break; }
-        //}
+        ss = std::stringstream(params);
+        while(getline(ss, param, ' ')){
+            if(param == "moves") {
+                while(getline(ss, param, ' ')){
+                    chess::Move m = position->get_move_from_long_algebraic(param);
+                    position->make_move(&m);
+                }
+            }
+        }
     }
 
     void UCIEngine::uci_go(const std::string &params){
@@ -178,10 +185,10 @@ namespace uci {
     }
 
     void UCIEngine::movegen(const std::string &params){
-        for(int i=0; i < 1000000; i++){
+        /*for(int i=0; i < 1000000; i++){
             chess::MoveGenerator* generator = new chess::MoveGenerator(position);
             generator->generate();
-        }
+        }*/
 
         chess::MoveGenerator* generator = new chess::MoveGenerator(position);
         generator->generate();
@@ -192,7 +199,17 @@ namespace uci {
     }
 
     void UCIEngine::perft(const std::string &params){
-        /*unimplemented*/
+        std::stringstream ss = std::stringstream(params);
+        std::string param;
+        getline(ss, param, ' ');
+        getline(ss, param, ' ');
+        int depth = std::stoi(param);
+
+        auto start = std::chrono::steady_clock::now();
+        int nodes = chess::perft(depth, position, true);
+        auto end = std::chrono::steady_clock::now();
+        float duration = float(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()) / 1000000;
+        std::cout << std::endl << "Searched " << nodes <<  " nodes in " << duration << "s (" << float(nodes) / 1000 / duration << " kNodes/s)." << std::endl << std::endl;
     }
 
 }

@@ -96,6 +96,7 @@ namespace chess{
         std::string get_square(int square);
         void reset();
         void make_move(Move* move);
+        Move get_move_from_long_algebraic(const std::string &m);
     };
 
 }

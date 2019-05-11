@@ -11,6 +11,7 @@ namespace chess {
     class Board;
     class Position;
     class Move;
+    class MoveGenerator;
 
 }
 

@@ -9,6 +9,8 @@
 
 namespace chess {
 
+    U64 perft(int depth, Position* position, bool printinfo);
+
     class Move{
     private:
         U8 from_layer;  // 4 bits
@@ -30,14 +32,13 @@ namespace chess {
         U8 get_take_square();
         U8 get_en_passant();
         bool is_promotion();
-        void from_long_algebraic(const std::string &m, Board* board);
         std::string to_long_algebraic();
     };
 
     class MoveGenerator{
     private:
         Position* position;
-        Move *move;
+        //Move move;
         //Board* to_board;
         int turn;
         int opponent;
@@ -54,26 +55,24 @@ namespace chess {
 
         MoveGenerator(Position* pos);
         int generate();
-        bool next(Move *m);
         bool ischeck(Move* m);
-        bool next_pseudo_legal();
-        bool next_white_pawn();
-        bool next_black_pawn();
-        bool next_knight();
-        bool next_bishop();
-        bool next_rook();
-        bool next_queen();
-        bool next_king();
         void generate_move_bitscan(int layer, int from, U64 bits);
-        U64 generate_pawn_pushes(U64 layer, Color color, U64 notSelf);
-        U64 generate_pawn_double_pushes(U64 layer, Color color, U64 notSelf);
-        U64 generate_pawn_en_passant(U64 layer, Color color, U64 notSelf);
+        U64 generate_pawn_pushes(U64 layer, Color color, U64 free_square);
+        U64 generate_pawn_double_pushes(U64 layer, Color color, U64 free_square);
         U64 generate_pawn_attacks(U64 layer, Color color, U64 notSelf);
         U64 generate_knight_attacks(U64 layer, U64 notSelf);
         U64 generate_bishop_attacks(U64 layer, U64 notSelf, U64 free_square);
         U64 generate_rook_attacks(U64 layer, U64 notSelf, U64 free_square);
         U64 generate_queen_attacks(U64 layer, U64 notSelf, U64 free_square);
         U64 generate_king_attacks(U64 layer, U64 notSelf);
+        U64 expandN(U64 layer, U64 notSelf, U64 free_square);
+        U64 expandNE(U64 layer, U64 notSelf, U64 free_square);
+        U64 expandE(U64 layer, U64 notSelf, U64 free_square);
+        U64 expandSE(U64 layer, U64 notSelf, U64 free_square);
+        U64 expandS(U64 layer, U64 notSelf, U64 free_square);
+        U64 expandSW(U64 layer, U64 notSelf, U64 free_square);
+        U64 expandW(U64 layer, U64 notSelf, U64 free_square);
+        U64 expandNW(U64 layer, U64 notSelf, U64 free_square);
         U64 expandBishop(U64 layer);
         U64 expandRook(U64 layer);
     };

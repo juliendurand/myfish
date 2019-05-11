@@ -89,7 +89,7 @@ namespace chess {
         if (file < 'a' || file > 'h' || rank < '1' || rank > '8'){
             return -1; // TODO throw Exception ?
         }
-        return (file - 'a') + (rank - 1) * 8;
+        return file - 'a' + (rank - '1') * 8;
     }
 
     std::string Board::square_to_coordinate(int square){
@@ -103,12 +103,12 @@ namespace chess {
         U8 from_square = move->get_from_square();
         U8 to_layer = move->get_to_layer();
         U8 to_square = move->get_to_square();
-        U8 take = move->get_take_square();
+        // U8 take = move->get_take_square();
         U64 from_mask = U64(1) << from_square;
         U64 to_mask = U64(1) << to_square;
-        U64 take_mask = U64(1) << take;
+        //U64 take_mask = U64(1) << take;
         for(int l = 0; l < NB_LAYERS; l++){
-            board[l] &= ~(from_mask | to_mask | take_mask);
+            board[l] &= ~(from_mask | to_mask); // | take_mask);
         }
         board[to_layer] |= to_mask;
     }
@@ -318,5 +318,23 @@ namespace chess {
         en_passant = 0;
         plies = 1;
         reversible_plies = 0;
+    }
+
+    void Position::make_move(Move* move){
+        plies++;
+        board.make_move(move);
+    }
+
+    Move Position::get_move_from_long_algebraic(const std::string &m){
+        int from = Board::coordinates_to_square(m.substr(0, 2));
+        int to = Board::coordinates_to_square(m.substr(2, 4));
+        MoveGenerator generator(this);
+        generator.generate();
+        for(Move m : generator.moveList){
+            if(m.get_from_square() == from && m.get_to_square() == to){
+                return m;
+            }
+        }
+        return Move();
     }
 }

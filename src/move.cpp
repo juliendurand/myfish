@@ -17,6 +17,32 @@ namespace chess {
         }
     }
 
+    U64 perft(int depth, Position* position, bool printinfo){
+        U64 nodes = 0;
+        U64 n_nodes = 0;
+        MoveGenerator generator(position);
+
+        //std::cout << "turn: " << position->get_turn();
+        n_nodes = generator.generate();
+        if(depth == 1 && !printinfo){
+            return n_nodes;
+        }
+        for(Move m : generator.moveList){
+            if(depth > 1){
+                Position new_position(*position);
+                new_position.make_move(&m);
+                n_nodes = perft(depth - 1, &new_position, false);
+            }else{
+                n_nodes = 1;
+            }
+            nodes += n_nodes;
+            if(printinfo){
+                std::cout << m.to_long_algebraic() << ": " << n_nodes << std::endl;
+            }
+        }
+        return nodes;
+    }
+
     /*
     * Move
     */
@@ -67,10 +93,6 @@ namespace chess {
         return from_layer != to_layer;
     }
 
-    void Move::from_long_algebraic(const std::string &m, Board* board){
-        // TODO
-    }
-
     std::string Move::to_long_algebraic(){
         return Board::square_to_coordinate(get_from_square())
              + Board::square_to_coordinate(get_to_square());
@@ -99,8 +121,12 @@ namespace chess {
             | position->board.board[opponent + 3]
             | position->board.board[opponent + 4]
             | position->board.board[opponent + 5];
-        all_pieces = own_pieces & opponent_pieces;
+        all_pieces = own_pieces | opponent_pieces;
         free_square = ~all_pieces;
+        // printBitset("ours ", own_pieces);
+        // printBitset("opponent ", opponent_pieces);
+        // printBitset("all ", all_pieces);
+        // printBitset("free square ", free_square);
     }
 
     int MoveGenerator::generate(){
@@ -114,9 +140,10 @@ namespace chess {
         if(pieces) do {
             int from = __builtin_ffsll(pieces) - 1;
             U64 p = U64(1) << from;
-            movebits = generate_pawn_pushes(p, position->get_turn(), notOwnPieces);
+            movebits = generate_pawn_pushes(p, position->get_turn(), free_square);
             generate_move_bitscan(layer, from, movebits);
-            movebits = generate_pawn_double_pushes(p, position->get_turn(), notOwnPieces);
+            //printBitset("pawns", movebits);
+            movebits = generate_pawn_double_pushes(p, position->get_turn(), free_square);
             generate_move_bitscan(layer, from, movebits);
             movebits = generate_pawn_attacks(p, position->get_turn(), notOwnPieces);
             generate_move_bitscan(layer, from, movebits & (opponent_pieces | position->en_passant));
@@ -164,6 +191,7 @@ namespace chess {
             int from = __builtin_ffsll(pieces) - 1;
             U64 p = U64(1) << from;
             movebits = generate_king_attacks(p, notOwnPieces);
+            //printBitset("king", movebits);
             generate_move_bitscan(layer, from, movebits);
         } while (pieces &= pieces - 1); // reset LS1B
 
@@ -191,18 +219,32 @@ namespace chess {
         U64 notOpponentPieces = ~opponent_pieces;
         U64 notOwnPieces = ~((own_pieces & ~from) | to);
         U64 free_square = notOwnPieces & notOpponentPieces;
-        U64 ourKing = m->get_to_layer() == turn + Board::WHITE_KING_LAYER ? to : position->board.board[turn + Board::WHITE_KING_LAYER];
+        U64 ourKing = (m->get_to_layer() == turn + Board::WHITE_KING_LAYER) ? to : position->board.board[turn + Board::WHITE_KING_LAYER];
 
-        attacks |= generate_pawn_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, position->get_turn(), notOpponentPieces);
+        if(m->to_long_algebraic()=="d7d5"){
+        //    std::cout << opponent << std::endl;
+        //printBitset("attacks initial", attacks);
+        attacks |= generate_pawn_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, opponent, notOpponentPieces);
+        printBitset("pawns", attacks);
         attacks |= generate_knight_attacks(position->board.board[opponent + Board::WHITE_KNIGHT_LAYER] & ~to, notOpponentPieces);
+        printBitset("knights", attacks);
         attacks |= generate_bishop_attacks((position->board.board[opponent + Board::WHITE_BISHOP_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER]) & ~to, notOpponentPieces, free_square);
+        //printBitset("free square", free_square);
+        //printBitset("Bishop", generate_bishop_attacks(position->board.board[opponent + Board::WHITE_BISHOP_LAYER], ~U64(0), ~U64(0)));
+        //printBitset("Bishop", generate_bishop_attacks(position->board.board[opponent + Board::WHITE_BISHOP_LAYER] & ~to, notOpponentPieces, free_square));
+        printBitset("bishop", attacks);
         attacks |= generate_rook_attacks((position->board.board[opponent + Board::WHITE_ROOK_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER]) & ~to, notOpponentPieces, free_square);
+        //printBitset("attacks initial", attacks);
         attacks |= generate_king_attacks(position->board.board[opponent + Board::WHITE_KING_LAYER] & ~to, notOpponentPieces);
-        // printBitset("from", from);
-        // printBitset("to", to);
-        // printBitset("notOpponentPieces", notOpponentPieces);
-        // printBitset("notOwnPieces", notOwnPieces);
-        // printBitset("opponent attacks", attacks);
+        //printBitset("attacks initial", attacks);
+//
+            std::cout << m->to_long_algebraic() << std::endl;
+            printBitset("from", from);
+            printBitset("to", to);
+            printBitset("notOpponentPieces", notOpponentPieces);
+            printBitset("notOwnPieces", notOwnPieces);
+            printBitset("opponent attacks", attacks);
+        }
         return (attacks & ourKing) != 0;
     }
 
@@ -211,31 +253,31 @@ namespace chess {
     U64 abFileMask = 0xFCFCFCFCFCFCFCFC;
     U64 ghFileMask = 0x3F3F3F3F3F3F3F3F;
 
-    U64 MoveGenerator::generate_pawn_pushes(U64 layer, Color color, U64 notSelf){
+    U64 MoveGenerator::generate_pawn_pushes(U64 layer, Color color, U64 free_square){
         U64 pushes = 0;
         if(color == Position::WHITE){
             pushes = layer << 8;
         }else{
             pushes = layer >> 8;
         }
-        return pushes;
+        return pushes & free_square;
     }
 
-    U64 MoveGenerator::generate_pawn_double_pushes(U64 layer, Color color, U64 notSelf){
+    U64 MoveGenerator::generate_pawn_double_pushes(U64 layer, Color color, U64 free_square){
         U64 pushes = 0;
         if(color == Position::WHITE){
-            pushes = (layer & 0x000000000000FF00) << 16;
+            pushes = (((layer & 0x000000000000FF00) << 8) & free_square) << 8;
         }else{
-            pushes = (layer & 0x00FF000000000000) >> 16;
+            pushes = (((layer & 0x00FF000000000000) >> 8) & free_square) >> 8;
         }
-        return pushes;
+        return pushes & free_square;
     }
 
     U64 MoveGenerator::generate_pawn_attacks(U64 layer, Color color, U64 notSelf){
         U64 attacks = 0;
         if(color == Position::WHITE){
-            attacks = (layer & hFileMask) << 7
-                    | (layer & aFileMask) << 9;
+            attacks = (layer & aFileMask) << 7
+                    | (layer & hFileMask) << 9;
         }else{
             attacks = (layer & hFileMask) >> 7
                     | (layer & aFileMask) >> 9;
@@ -303,18 +345,107 @@ namespace chess {
         return attacks & notSelf;
     }
 
+    U64 MoveGenerator::expandN(U64 layer, U64 notSelf, U64 free_square){
+        U64 attacks = layer << 8;
+        attacks |= (attacks & free_square) << 8;
+        attacks |= (attacks & free_square) << 8;
+        attacks |= (attacks & free_square) << 8;
+        attacks |= (attacks & free_square) << 8;
+        attacks |= (attacks & free_square) << 8;
+        attacks |= (attacks & free_square) << 8;
+        return attacks & notSelf;
+    }
+
+    U64 MoveGenerator::expandNE(U64 layer, U64 notSelf, U64 free_square){
+        U64 attacks = (layer & hFileMask) << 9;
+        attacks |= (attacks & free_square & hFileMask) << 9;
+        attacks |= (attacks & free_square & hFileMask) << 9;
+        attacks |= (attacks & free_square & hFileMask) << 9;
+        attacks |= (attacks & free_square & hFileMask) << 9;
+        attacks |= (attacks & free_square & hFileMask) << 9;
+        attacks |= (attacks & free_square & hFileMask) << 9;
+        return attacks & notSelf;
+    }
+
+    U64 MoveGenerator::expandE(U64 layer, U64 notSelf, U64 free_square){
+        U64 attacks = (layer & hFileMask) << 1;
+        attacks |= (attacks & free_square & hFileMask) << 1;
+        attacks |= (attacks & free_square & hFileMask) << 1;
+        attacks |= (attacks & free_square & hFileMask) << 1;
+        attacks |= (attacks & free_square & hFileMask) << 1;
+        attacks |= (attacks & free_square & hFileMask) << 1;
+        attacks |= (attacks & free_square & hFileMask) << 1;
+        return attacks & notSelf;
+    }
+
+    U64 MoveGenerator::expandSE(U64 layer, U64 notSelf, U64 free_square){
+        U64 attacks = (layer & hFileMask) >> 7;
+        attacks |= (attacks & free_square & hFileMask) >> 7;
+        attacks |= (attacks & free_square & hFileMask) >> 7;
+        attacks |= (attacks & free_square & hFileMask) >> 7;
+        attacks |= (attacks & free_square & hFileMask) >> 7;
+        attacks |= (attacks & free_square & hFileMask) >> 7;
+        attacks |= (attacks & free_square & hFileMask) >> 7;
+        return attacks & notSelf;
+    }
+
+    U64 MoveGenerator::expandS(U64 layer, U64 notSelf, U64 free_square){
+        U64 attacks = layer >> 8;
+        attacks |= (attacks & free_square) >> 8;
+        attacks |= (attacks & free_square) >> 8;
+        attacks |= (attacks & free_square) >> 8;
+        attacks |= (attacks & free_square) >> 8;
+        attacks |= (attacks & free_square) >> 8;
+        attacks |= (attacks & free_square) >> 8;
+        return attacks & notSelf;
+    }
+
+    U64 MoveGenerator::expandSW(U64 layer, U64 notSelf, U64 free_square){
+        U64 attacks = (layer & aFileMask) >> 9;
+        attacks |= (attacks & free_square & aFileMask) >> 9;
+        attacks |= (attacks & free_square & aFileMask) >> 9;
+        attacks |= (attacks & free_square & aFileMask) >> 9;
+        attacks |= (attacks & free_square & aFileMask) >> 9;
+        attacks |= (attacks & free_square & aFileMask) >> 9;
+        attacks |= (attacks & free_square & aFileMask) >> 9;
+        return attacks & notSelf;
+    }
+
+    U64 MoveGenerator::expandW(U64 layer, U64 notSelf, U64 free_square){
+        U64 attacks = (layer & aFileMask) >> 1;
+        attacks |= (attacks & free_square & aFileMask) >> 1;
+        attacks |= (attacks & free_square & aFileMask) >> 1;
+        attacks |= (attacks & free_square & aFileMask) >> 1;
+        attacks |= (attacks & free_square & aFileMask) >> 1;
+        attacks |= (attacks & free_square & aFileMask) >> 1;
+        attacks |= (attacks & free_square & aFileMask) >> 1;
+        return attacks & notSelf;
+    }
+
+    U64 MoveGenerator::expandNW(U64 layer, U64 notSelf, U64 free_square){
+        U64 attacks = (layer & aFileMask) << 7;
+        attacks |= (attacks & free_square & aFileMask) << 7;
+        attacks |= (attacks & free_square & aFileMask) << 7;
+        attacks |= (attacks & free_square & aFileMask) << 7;
+        attacks |= (attacks & free_square & aFileMask) << 7;
+        attacks |= (attacks & free_square & aFileMask) << 7;
+        attacks |= (attacks & free_square & aFileMask) << 7;
+        return attacks & notSelf;
+    }
+
+
     U64 MoveGenerator::expandBishop(U64 layer){
-        return (layer & aFileMask & (layer << 7)) << 7
-             | (layer & aFileMask & (layer >> 9)) >> 9
-             | (layer & hFileMask & (layer << 9)) << 9
-             | (layer & hFileMask & (layer >> 7)) >> 7;
+        return (layer & (layer << 7)) & aFileMask << 7
+             | (layer & (layer >> 9)) & aFileMask >> 9
+             | (layer & (layer << 9)) & hFileMask << 9
+             | (layer & (layer >> 7)) & hFileMask >> 7;
     }
 
     U64 MoveGenerator::expandRook(U64 layer){
         return (layer & layer << 8) << 8
              | (layer & layer >> 8) >> 8
-             | (layer & hFileMask & layer << 1) << 1
-             | (layer & aFileMask & layer >> 1) >> 1;
+             | (layer & hFileMask & (layer & hFileMask) << 1) << 1
+             | (layer & aFileMask & (layer & aFileMask) >> 1) >> 1;
     }
 
 }
