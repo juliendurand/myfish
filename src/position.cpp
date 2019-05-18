@@ -120,6 +120,27 @@ namespace chess {
         for(int l = 0; l < NB_LAYERS; l++){
             board[l] &= ~(from_mask | to_mask | take_mask);
         }
+        if(to_layer == WHITE_KING_LAYER){
+            if(from_square == 4 && to_square == 6){
+                // white kingside castling
+                board[WHITE_ROOK_LAYER] |= U64(1) << 5;
+                board[WHITE_ROOK_LAYER] &= ~(U64(1) << 7);
+            } else if(from_square == 4 && to_square == 2){
+                // white queenside castling
+                board[WHITE_ROOK_LAYER] |= U64(1) << 3;
+                board[WHITE_ROOK_LAYER] &= ~(U64(1) << 0);
+            }
+        } else if(to_layer == BLACK_KING_LAYER){
+            if(from_square == 60 && to_square == 62){
+                // black kingside castling
+                board[BLACK_ROOK_LAYER] |= U64(1) << 61;
+                board[BLACK_ROOK_LAYER] &= ~(U64(1) << 63);
+            } else if(from_square == 60 && to_square == 58){
+                // black queenside castling
+                board[BLACK_ROOK_LAYER] |= U64(1) << 59;
+                board[BLACK_ROOK_LAYER] &= ~(U64(1) << 56);
+            }
+        }
         board[to_layer] |= to_mask;
     }
 
@@ -334,6 +355,17 @@ namespace chess {
         plies++;
         board.make_move(move);
         en_passant = 0;
+
+        // set rerversible moves
+        if(move->get_from_layer() == Board::WHITE_PAWN_LAYER
+            || move->get_from_layer() == Board::BLACK_PAWN_LAYER){
+            reversible_plies = 0;
+        } else{
+            // TODO : check attacks (or number of pieces);
+            reversible_plies++;
+        }
+
+        // set en passant
         if(move->get_from_layer() == Board::WHITE_PAWN_LAYER
             && (move->get_to_square() - move->get_from_square() == 16)){
             en_passant =  U8(1) << ((move->get_to_square() - 8) % 8);
@@ -341,6 +373,28 @@ namespace chess {
         if(move->get_from_layer() == Board::BLACK_PAWN_LAYER
             && (move->get_to_square() - move->get_from_square() == -16)){
             en_passant =  U8(1) << ((move->get_to_square() + 8) % 8);
+        }
+
+        // set castling rights
+        if(move->get_to_layer() == Board::WHITE_KING_LAYER){
+            set_castling(Board::WHITE_KING, false);
+            set_castling(Board::WHITE_QUEEN, false);
+        } else if(move->get_to_layer() == Board::BLACK_KING_LAYER){
+            set_castling(Board::BLACK_KING, false);
+            set_castling(Board::BLACK_QUEEN, false);
+        }
+        if(move->get_to_layer() == Board::WHITE_ROOK_LAYER){
+            if(move->get_from_square() == 7){
+                set_castling(Board::WHITE_KING, false);
+            } else if(move->get_from_square() == 0){
+                set_castling(Board::WHITE_QUEEN, false);
+            }
+        } else if(move->get_to_layer() == Board::BLACK_ROOK_LAYER){
+            if(move->get_from_square() == 63){
+                set_castling(Board::BLACK_KING, false);
+            } else if(move->get_from_square() == 56){
+                set_castling(Board::BLACK_QUEEN, false);
+            }
         }
     }
 

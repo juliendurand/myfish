@@ -156,7 +156,7 @@ namespace uci {
     void UCIEngine::display(const std::string &params){
         const std::string rank_separator = "+---+---+---+---+---+---+---+---+";
         const std::string file_separator = "|";
-        std::string sb;
+        std::string sb = position->export_fen() + "\n";
         for(int i = 0; i < 64; i++){
             if(i % 8 == 0){
                 if(i > 0) {
