@@ -22,7 +22,6 @@ namespace chess {
         U64 n_nodes = 0;
         MoveGenerator generator(position);
 
-        //std::cout << "turn: " << position->get_turn();
         n_nodes = generator.generate();
         if(depth == 1 && !printinfo){
             return n_nodes;
@@ -190,7 +189,6 @@ namespace chess {
             int from = __builtin_ffsll(pieces) - 1;
             U64 p = U64(1) << from;
             movebits = generate_king_attacks(p, notOwnPieces);
-            //printBitset("king", movebits);
             generate_move_bitscan(layer, from, movebits);
         } while (pieces &= pieces - 1); // reset LS1B
 
