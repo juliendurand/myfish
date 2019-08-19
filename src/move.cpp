@@ -318,10 +318,10 @@ namespace chess {
         int from = 4;
         int to_kingside = 6;
         int to_queenside = 2;
-        U64 kingside_free_square = U64(1) << 5;
-        U64 queenside_free_square = U64(1) << 3;
+        U64 kingside_free_square = 0x60;
+        U64 queenside_free_square = 0xE;
         U64 kingside_castling_squares = 0xE0;
-        U64 queenside_castling_squares = 0x38;
+        U64 queenside_castling_squares = 0x1E;
 
         if(position->get_turn() == Position::BLACK){
             from += 56;
@@ -341,11 +341,11 @@ namespace chess {
                 moveList.push_back(m);
             }
         }
-        std::cout<< turn << std::endl;
+        //std::cout<< turn << std::endl;
         if(position->get_castling(turn ? Board::WHITE_KING : Board::BLACK_QUEEN)){
-            std::cout<< "test2" << std::endl;
+            //std::cout<< "test2" << std::endl;
             if(!(attacks & queenside_castling_squares) && (free_square & queenside_free_square)){
-                std::cout<< "test3" << std::endl;
+                //std::cout<< "test3" << std::endl;
                 m.set(layer, from, layer, to_queenside, 0);
                 moveList.push_back(m);
             }
