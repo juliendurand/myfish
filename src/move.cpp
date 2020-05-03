@@ -221,28 +221,29 @@ namespace chess {
         int to_square = m->get_to_square();
         U64 to = U64(1) << to_square;
 
-        U64 notOpponentPieces = ~opponent_pieces | to; 
+         
         // en passant
+        U64 ep = U64(0);
         if(from_layer == Board::WHITE_PAWN_LAYER || from_layer == Board::BLACK_PAWN_LAYER){
             if(((from_square - to_square) % 8) != 0){ // not on the same file
-                if(to & notOpponentPieces){
+                if(to & ~opponent_pieces){
                     // en passant
                     if(from_layer == Board::WHITE_PAWN_LAYER){
-                        notOpponentPieces |= to >> 8;
+                        ep = to >> 8;
                     } else {
-                        notOpponentPieces |= to << 8;
+                        ep = to << 8;
                     }
                 }
             }
         }
-
+        U64 notOpponentPieces = ~opponent_pieces | to | ep;
         U64 notOwnPieces = (~own_pieces | from) & ~to;
         U64 free_square = notOwnPieces & notOpponentPieces;
-        U64 attacks = generate_attacks(to, notOpponentPieces, free_square);
+        U64 attacks = generate_attacks(to | ep, notOpponentPieces, free_square);
         U64 ourKing = (m->get_to_layer() == turn + Board::WHITE_KING_LAYER) ? to : position->board.board[turn + Board::WHITE_KING_LAYER];
-        //if(m->to_long_algebraic() == "h4g4"){
-        //    printBitset(m->to_long_algebraic(), attacks);
-        //}
+        /*if(m->to_long_algebraic() == "f4e3"){
+            printBitset(m->to_long_algebraic(), attacks);
+        }*/
         return (attacks & ourKing) != 0;
     }
 
