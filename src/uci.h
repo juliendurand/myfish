@@ -31,6 +31,7 @@ namespace uci {
 
         // Proprietary extensions
         void display(const std::string &params);
+        void eval(const std::string &params);
         void fen(const std::string &params);
         void movegen(const std::string &params);
         void perft(const std::string &params);

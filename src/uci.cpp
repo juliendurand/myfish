@@ -5,6 +5,7 @@
 #include <sstream>
 
 #include "uci.h"
+#include "search.h"
 
 /*
 Implementing the protocol defined at
@@ -71,6 +72,7 @@ namespace uci {
 
             // Proprietary extensions
             else if(cmd == "display") { display(params); }
+            else if(cmd == "eval") { eval(params); }
             else if(cmd == "fen") { fen(params); }
             else if(cmd == "movegen") { movegen(params); }
             else if(cmd == "perft") { perft(params); }
@@ -138,7 +140,7 @@ namespace uci {
     }
 
     void UCIEngine::uci_go(const std::string &params){
-        /*unimplemented*/
+        std::cout << "bestmove " <<  chess::search(position, 4) + "\n";;
     }
 
     void UCIEngine::uci_stop(const std::string &params){
@@ -178,6 +180,10 @@ namespace uci {
         sb += "Moves: " + std::to_string(position->get_move()) + "\n";
         sb += "Plies: " + std::to_string(position->get_plies()) + "\n";
         std::cout << sb;
+    }
+
+    void UCIEngine::eval(const std::string &params){
+        std::cout << chess::eval(position);
     }
 
     void UCIEngine::fen(const std::string &params){

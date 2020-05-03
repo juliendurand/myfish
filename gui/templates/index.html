@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title></title>
+
+    <link rel="stylesheet" href="css/chessboard-1.0.0.css" />
+    <link rel="icon" href="images/favicon.png" />
+  </head>
+
+  <body>
+    <div id="board" style="width: 400px"></div>
+    FEN: <input id="fen" type="text" style="width: 400px;"></input>
+    <div id="game_over"></div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="js/chessboard-1.0.0.js"></script>
+    <script src="js/chess.js"></script>
+    <script type="text/javascript">
+var board = null
+var game = new Chess()
+
+function onDragStart (source, piece, position, orientation) {
+  // do not pick up pieces if the game is over
+  if (game.game_over()) return false
+
+  // only pick up pieces for White
+  if (piece.search(/^b/) !== -1) return false
+}
+
+function makeMove () {
+  var possibleMoves = game.moves()
+
+  // game over
+  if (possibleMoves.length === 0) return
+
+  var history = game.history({ verbose: true })
+  var moves = []
+  for(idx in history){
+    var move = history[idx];
+    moves.push(move.from + move.to + (move.promotion || ''))
+  }
+
+  $.get('/play?moves=' + moves.join(' '), function(response){
+    play(response)
+  })
+}
+
+function play(move){
+  console.log(move)
+  from = move.substring(0,2)
+  to = move.substring(2,4)
+  promotion = move.length > 4 ? substring(4,5) : ''
+  game.move({from: from, to: to, promotion:promotion})
+  board.position(game.fen())
+}
+
+function onDrop (source, target) {
+  // see if the move is legal
+  var move = game.move({
+    from: source,
+    to: target,
+    promotion: 'q' // NOTE: always promote to a queen for example simplicity
+  })
+
+  // illegal move
+  if (move === null) return 'snapback'
+
+  // make random legal move for black
+  window.setTimeout(makeMove, 10)
+}
+
+// update the board position after the piece snap
+// for castling, en passant, pawn promotion
+function onSnapEnd () {
+  board.position(game.fen())
+}
+
+function onChange() {
+  if(game.in_draw() || game.in_stalemate()  || game.in_threefold_repetition()){
+    $("#game_over").text("Finished: 1/2-1/2");
+  }
+  if(game.game_over()) {
+    if(game.turn() == 'w'){
+      $("#game_over").text("Finished: 0-1");
+    } else {
+      $("#game_over").text("Finished: 1-0");
+    }
+  }
+  set_fen();
+}
+
+function set_fen(){
+  $("#fen").val(game.fen())
+}
+
+var config = {
+  draggable: true,
+  position: 'start',
+  onDragStart: onDragStart,
+  onDrop: onDrop,
+  onSnapEnd: onSnapEnd,
+  onChange : onChange,
+}
+
+var board = Chessboard('board', config)
+set_fen();
+
+    </script>
+  </body>
+</html>

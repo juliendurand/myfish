@@ -64,13 +64,13 @@ namespace chess{
         friend class MoveGenerator;
 
     private:
-        Board board;
         U8 castling;
         U8 en_passant;
         int plies;
         int reversible_plies;
 
     public:
+        Board board;
         static const U8 WHITE_KINGSIDE_CAST  = U8(1) << 0;
         static const U8 WHITE_QUEENSIDE_CAST = U8(1) << 1;
         static const U8 BLACK_KINGSIDE_CAST  = U8(1) << 2;

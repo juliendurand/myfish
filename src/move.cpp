@@ -332,7 +332,7 @@ namespace chess {
             kingside_castling_squares <<= 56;
             queenside_castling_squares <<= 56;
         }
-
+/*
         U64 free_square = ~own_pieces & ~opponent_pieces;
         U64 attacks = generate_attacks(U64(0), ~opponent_pieces, free_square);
         if(position->get_castling(turn ? Board::WHITE_KING : Board::BLACK_KING)){
@@ -349,7 +349,7 @@ namespace chess {
                 m.set(layer, from, layer, to_queenside, 0);
                 moveList.push_back(m);
             }
-        }
+        }*/
     }
 
     U64 MoveGenerator::expandN(U64 layer, U64 notSelf, U64 free_square){
