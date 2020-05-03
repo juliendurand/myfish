@@ -21,7 +21,7 @@ namespace chess {
         U64 nodes = 0;
         U64 n_nodes = 0;
         MoveGenerator generator(position);
-        n_nodes = generator.generate();
+        n_nodes = U64(generator.generate());
         if(depth == 1 && !printinfo){
             return n_nodes;
         }
@@ -378,8 +378,8 @@ namespace chess {
         int to_queenside = 2;
         U64 kingside_free_square = 0x60;
         U64 queenside_free_square = 0xE;
-        U64 kingside_castling_squares = 0xE0;
-        U64 queenside_castling_squares = 0x1E;
+        U64 kingside_castling_squares = 0x70;
+        U64 queenside_castling_squares = 0x1C;
 
         if(position->get_turn() == Position::BLACK){
             from += 56;
@@ -390,24 +390,24 @@ namespace chess {
             kingside_castling_squares <<= 56;
             queenside_castling_squares <<= 56;
         }
-/*
+
         U64 free_square = ~own_pieces & ~opponent_pieces;
         U64 attacks = generate_attacks(U64(0), ~opponent_pieces, free_square);
-        if(position->get_castling(turn ? Board::WHITE_KING : Board::BLACK_KING)){
-            if(!(attacks & kingside_castling_squares) && (free_square & kingside_free_square)){
-                m.set(layer, from, layer, to_kingside, 0);
+        if(position->get_castling(turn == 0 ? Board::WHITE_KING : Board::BLACK_KING)){
+            if(!(attacks & kingside_castling_squares) && ((free_square & kingside_free_square) == kingside_free_square)){
+                m.set(layer, from, layer, to_kingside);
                 moveList.push_back(m);
             }
         }
         //std::cout<< turn << std::endl;
-        if(position->get_castling(turn ? Board::WHITE_KING : Board::BLACK_QUEEN)){
+        if(position->get_castling(turn == 0 ? Board::WHITE_QUEEN : Board::BLACK_QUEEN)){
             //std::cout<< "test2" << std::endl;
-            if(!(attacks & queenside_castling_squares) && (free_square & queenside_free_square)){
+            if(!(attacks & queenside_castling_squares) && ((free_square & queenside_free_square) == queenside_free_square)){
                 //std::cout<< "test3" << std::endl;
-                m.set(layer, from, layer, to_queenside, 0);
+                m.set(layer, from, layer, to_queenside);
                 moveList.push_back(m);
             }
-        }*/
+        }
     }
 
     U64 MoveGenerator::expandN(U64 layer, U64 notSelf, U64 free_square){

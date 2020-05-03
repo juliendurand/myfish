@@ -99,14 +99,12 @@ namespace chess {
     }
 
     void Board::make_move(Move* move){
-        // U8 from_layer = move->get_from_layer();
         U8 from_square = move->get_from_square();
         U8 to_layer = move->get_to_layer();
         U8 to_square = move->get_to_square();
-        // U8 take = move->get_take_square();
         U64 from_mask = U64(1) << from_square;
         U64 to_mask = U64(1) << to_square;
-        U64 take_mask = 0; //U64(1) << take;
+        U64 take_mask = 0; ;
         U64 free_squares = ~0;
         for(int l = 0; l < NB_LAYERS; l++){
             free_squares &= ~board[l];
@@ -376,25 +374,38 @@ namespace chess {
         }
 
         // set castling rights
-        if(move->get_to_layer() == Board::WHITE_KING_LAYER){
+        int from_layer = move->get_from_layer();
+        U64 from = move->get_from_square();
+        U64 to = move->get_to_square();
+        if(from_layer == Board::WHITE_KING_LAYER){
             set_castling(Board::WHITE_KING, false);
             set_castling(Board::WHITE_QUEEN, false);
-        } else if(move->get_to_layer() == Board::BLACK_KING_LAYER){
+        } else if(from_layer == Board::BLACK_KING_LAYER){
             set_castling(Board::BLACK_KING, false);
             set_castling(Board::BLACK_QUEEN, false);
         }
-        if(move->get_to_layer() == Board::WHITE_ROOK_LAYER){
-            if(move->get_from_square() == 7){
+        if(from_layer == Board::WHITE_ROOK_LAYER){
+            if(from == 7){
                 set_castling(Board::WHITE_KING, false);
-            } else if(move->get_from_square() == 0){
+            } else if(from == 0){
                 set_castling(Board::WHITE_QUEEN, false);
             }
-        } else if(move->get_to_layer() == Board::BLACK_ROOK_LAYER){
-            if(move->get_from_square() == 63){
+        } else if(from_layer == Board::BLACK_ROOK_LAYER){
+            if(from == 63){
                 set_castling(Board::BLACK_KING, false);
-            } else if(move->get_from_square() == 56){
+            } else if(from == 56){
                 set_castling(Board::BLACK_QUEEN, false);
             }
+        }
+        if(to == 7){
+            set_castling(Board::WHITE_KING, false);
+        } else if(to == 0){
+            set_castling(Board::WHITE_QUEEN, false);
+        }
+        if(to == 63){
+            set_castling(Board::BLACK_KING, false);
+        } else if(to == 56){
+            set_castling(Board::BLACK_QUEEN, false);
         }
     }
 

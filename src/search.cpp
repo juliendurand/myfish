@@ -11,18 +11,18 @@ namespace chess {
         score += __builtin_popcountl(position->board.board[Board::WHITE_BISHOP_LAYER]) * 3;
         score += __builtin_popcountl(position->board.board[Board::WHITE_ROOK_LAYER]) * 5;
         score += __builtin_popcountl(position->board.board[Board::WHITE_QUEEN_LAYER]) * 9;
-        score += __builtin_popcountl(position->board.board[Board::WHITE_KING_LAYER]) * 1000000;
+        score += __builtin_popcountl(position->board.board[Board::WHITE_KING_LAYER]) * 1000;
         score += __builtin_popcountl(position->board.board[Board::BLACK_PAWN_LAYER]) * -1;
         score += __builtin_popcountl(position->board.board[Board::BLACK_KNIGHT_LAYER]) * -3;
         score += __builtin_popcountl(position->board.board[Board::BLACK_BISHOP_LAYER]) * -3;
         score += __builtin_popcountl(position->board.board[Board::BLACK_ROOK_LAYER]) * -5;
         score += __builtin_popcountl(position->board.board[Board::BLACK_QUEEN_LAYER]) * -9;
-        score += __builtin_popcountl(position->board.board[Board::BLACK_KING_LAYER]) * -1000000; 
+        score += __builtin_popcountl(position->board.board[Board::BLACK_KING_LAYER]) * -1000; 
         return score;
 	}
 
 	double minimax(Position* position, int depth){
-		double value = -1000000000;
+		double value = -1000000;
 
 		if(depth == 0){
 			return eval(position) * (position->get_turn() == Position::WHITE ? 1 : -1);
@@ -40,7 +40,7 @@ namespace chess {
 	}
 
 	std::string search(Position* position, int depth){
-		double value = -1000000000;
+		double value = -10000000;
 		std::string bestMove = "";
 
         MoveGenerator generator(position);
