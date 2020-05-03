@@ -57,10 +57,12 @@ namespace chess {
         int generate();
         bool ischeck(Move* m);
         U64 generate_attacks(U64 to, U64 notOpponentPieces, U64 free_square);
-        void generate_move_bitscan(int layer, int from, U64 bits, U8 en_passant = 0);
+        void generate_move_bitscan(int from_layer, int from, int to_layer, U64 bits, U8 en_passant = 0);
         U64 generate_pawn_pushes(U64 layer, Color color, U64 free_square);
+        U64 generate_pawn_push_promotions(U64 layer, Color color, U64 free_square);
         U64 generate_pawn_double_pushes(U64 layer, Color color, U64 free_square);
         U64 generate_pawn_attacks(U64 layer, Color color, U64 notSelf);
+        U64 generate_pawn_attack_promotions(U64 layer, Color color, U64 free_square);
         U64 generate_knight_attacks(U64 layer, U64 notSelf);
         U64 generate_bishop_attacks(U64 layer, U64 notSelf, U64 free_square);
         U64 generate_rook_attacks(U64 layer, U64 notSelf, U64 free_square);

@@ -92,8 +92,12 @@ namespace chess {
     }
 
     std::string Move::to_long_algebraic(){
-        return Board::square_to_coordinate(get_from_square())
-             + Board::square_to_coordinate(get_to_square());
+        std::string s = Board::square_to_coordinate(get_from_square())
+                      + Board::square_to_coordinate(get_to_square());
+        if(is_promotion()){
+            s.push_back(std::tolower(Board::get_piece(get_to_layer())));
+        }
+        return s;
     }
 
     /*
@@ -139,12 +143,27 @@ namespace chess {
             int from = __builtin_ffsll(pieces) - 1;
             U64 p = U64(1) << from;
             movebits = generate_pawn_pushes(p, position->get_turn(), free_square);
-            generate_move_bitscan(layer, from, movebits);
+            generate_move_bitscan(layer, from, layer, movebits);
+            movebits = generate_pawn_push_promotions(p, position->get_turn(), free_square);
+            if(movebits){
+                generate_move_bitscan(layer, from, layer + Board::WHITE_KNIGHT_LAYER, movebits);
+                generate_move_bitscan(layer, from, layer + Board::WHITE_BISHOP_LAYER, movebits);
+                generate_move_bitscan(layer, from, layer + Board::WHITE_ROOK_LAYER, movebits);
+                generate_move_bitscan(layer, from, layer + Board::WHITE_QUEEN_LAYER, movebits);
+            }
             movebits = generate_pawn_double_pushes(p, position->get_turn(), free_square);
-            generate_move_bitscan(layer, from, movebits, 1);
+            generate_move_bitscan(layer, from, layer, movebits, 1);
             movebits = generate_pawn_attacks(p, position->get_turn(), notOwnPieces);
+            generate_move_bitscan(layer, from, layer, movebits, 1);
+            movebits = generate_pawn_attack_promotions(p, position->get_turn(), notOwnPieces);
+            if(movebits){
+                generate_move_bitscan(layer, from, layer + Board::WHITE_KNIGHT_LAYER, movebits);
+                generate_move_bitscan(layer, from, layer + Board::WHITE_BISHOP_LAYER, movebits);
+                generate_move_bitscan(layer, from, layer + Board::WHITE_ROOK_LAYER, movebits);
+                generate_move_bitscan(layer, from, layer + Board::WHITE_QUEEN_LAYER, movebits);
+            }
             U64 ep = U64(position->en_passant) << ((turn ? 2 : 5) * 8);
-            generate_move_bitscan(layer, from, movebits & (opponent_pieces | ep));
+            generate_move_bitscan(layer, from, layer, movebits & (opponent_pieces | ep));
         } while (pieces &= pieces - 1); // reset LS1B
 
         layer = turn + Board::WHITE_KNIGHT_LAYER;
@@ -153,7 +172,7 @@ namespace chess {
             int from = __builtin_ffsll(pieces) - 1;
             U64 p = U64(1) << from;
             movebits = generate_knight_attacks(p, notOwnPieces);
-            generate_move_bitscan(layer, from, movebits);
+            generate_move_bitscan(layer, from, layer, movebits);
         } while (pieces &= pieces - 1); // reset LS1B
 
         layer = turn + Board::WHITE_BISHOP_LAYER;
@@ -162,7 +181,7 @@ namespace chess {
             int from = __builtin_ffsll(pieces) - 1;
             U64 p = U64(1) << from;
             movebits = generate_bishop_attacks(p, notOwnPieces, free_square);
-            generate_move_bitscan(layer, from, movebits);
+            generate_move_bitscan(layer, from, layer, movebits);
         } while (pieces &= pieces - 1); // reset LS1B
 
         layer = turn + Board::WHITE_ROOK_LAYER;
@@ -171,7 +190,7 @@ namespace chess {
             int from = __builtin_ffsll(pieces) - 1;
             U64 p = U64(1) << from;
             movebits = generate_rook_attacks(p, notOwnPieces, free_square);
-            generate_move_bitscan(layer, from, movebits);
+            generate_move_bitscan(layer, from, layer, movebits);
         } while (pieces &= pieces - 1); // reset LS1B
 
         layer = turn + Board::WHITE_QUEEN_LAYER;
@@ -180,7 +199,7 @@ namespace chess {
             int from = __builtin_ffsll(pieces) - 1;
             U64 p = U64(1) << from;
             movebits = generate_queen_attacks(p, notOwnPieces, free_square);
-            generate_move_bitscan(layer, from, movebits);
+            generate_move_bitscan(layer, from, layer, movebits);
         } while (pieces &= pieces - 1); // reset LS1B
 
         layer = turn + Board::WHITE_KING_LAYER;
@@ -189,7 +208,7 @@ namespace chess {
             int from = __builtin_ffsll(pieces) - 1;
             U64 p = U64(1) << from;
             movebits = generate_king_attacks(p, notOwnPieces);
-            generate_move_bitscan(layer, from, movebits);
+            generate_move_bitscan(layer, from, layer, movebits);
         } while (pieces &= pieces - 1); // reset LS1B
 
         generate_castling();
@@ -197,12 +216,12 @@ namespace chess {
         return moveList.size();
     }
 
-    void MoveGenerator::generate_move_bitscan(int layer, int from, U64 bits, U8 en_passant){
+    void MoveGenerator::generate_move_bitscan(int from_layer, int from, int to_layer, U64 bits, U8 en_passant){
         if(bits) do {
             int idx = __builtin_ffsll(bits) - 1;
             Move m;
             //std::cout << "idx: " << idx << " " << bits << std::endl;
-            m.set(layer, from, layer, idx, en_passant);
+            m.set(from_layer, from, to_layer, idx, en_passant);
             if(!ischeck(&m)){
                moveList.push_back(m);
             }
@@ -222,6 +241,8 @@ namespace chess {
 
     U64 MoveGenerator::generate_attacks(U64 to, U64 notOpponentPieces, U64 free_square){
         U64 attacks = generate_pawn_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, position->get_turn() == Position::WHITE ? Position::BLACK : Position::WHITE, notOpponentPieces);
+        attacks |= generate_pawn_attack_promotions(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, position->get_turn() == Position::WHITE ? Position::BLACK : Position::WHITE, notOpponentPieces);
+        //TODO EN PASSANT ATTACKS
         attacks |= generate_knight_attacks(position->board.board[opponent + Board::WHITE_KNIGHT_LAYER] & ~to, notOpponentPieces);
         attacks |= generate_bishop_attacks((position->board.board[opponent + Board::WHITE_BISHOP_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER]) & ~to, notOpponentPieces, free_square);
         attacks |= generate_rook_attacks((position->board.board[opponent + Board::WHITE_ROOK_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER]) & ~to, notOpponentPieces, free_square);
@@ -238,8 +259,22 @@ namespace chess {
         U64 pushes = 0;
         if(color == Position::WHITE){
             pushes = layer << 8;
+            pushes &= 0x00FFFFFFFFFF0000;
         }else{
             pushes = layer >> 8;
+            pushes &= 0x0000FFFFFFFFFF00;
+        }
+        return pushes & free_square;
+    }
+
+    U64 MoveGenerator::generate_pawn_push_promotions(U64 layer, Color color, U64 free_square){
+        U64 pushes = 0;
+        if(color == Position::WHITE){
+            pushes = layer << 8;
+            pushes &= 0xFF00000000000000;
+        }else{
+            pushes = layer >> 8;
+            pushes &= 0x00000000000000FF;
         }
         return pushes & free_square;
     }
@@ -259,9 +294,25 @@ namespace chess {
         if(color == Position::WHITE){
             attacks = (layer & aFileMask) << 7
                     | (layer & hFileMask) << 9;
+            attacks &= 0x00FFFFFFFFFF0000;
         }else{
             attacks = (layer & hFileMask) >> 7
                     | (layer & aFileMask) >> 9;
+            attacks &= 0x0000FFFFFFFFFF00;
+        }
+        return attacks & notSelf;
+    }
+
+    U64 MoveGenerator::generate_pawn_attack_promotions(U64 layer, Color color, U64 notSelf){
+        U64 attacks = 0;
+        if(color == Position::WHITE){
+            attacks = (layer & aFileMask) << 7
+                    | (layer & hFileMask) << 9;
+            attacks &= 0xFF00000000000000;
+        }else{
+            attacks = (layer & hFileMask) >> 7
+                    | (layer & aFileMask) >> 9;
+            attacks &= 0x00000000000000FF;
         }
         return attacks & notSelf;
     }
