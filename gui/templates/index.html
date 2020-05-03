@@ -67,7 +67,10 @@ function onDrop (source, target) {
   })
 
   // illegal move
-  if (move === null) return 'snapback'
+  if (move === null) {
+    alert("Illegal Move");
+    return 'snapback'
+  }
 
   // make random legal move for black
   window.setTimeout(makeMove, 10)

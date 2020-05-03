@@ -21,7 +21,6 @@ namespace chess {
         U64 nodes = 0;
         U64 n_nodes = 0;
         MoveGenerator generator(position);
-
         n_nodes = generator.generate();
         if(depth == 1 && !printinfo){
             return n_nodes;
@@ -46,13 +45,11 @@ namespace chess {
     * Move
     */
 
-    void Move::set(U8 from_layer, U8 from_square, U8 to_layer, U8 to_square,
-             U8 en_passant){
+    void Move::set(U8 from_layer, U8 from_square, U8 to_layer, U8 to_square){
         this->from_layer = from_layer;
         this->from_square = from_square;
         this->to_layer = to_layer;
         this->to_square = to_square;
-        this->en_passant = 0;
     }
 
     U8 Move::get_from_layer(){
@@ -77,14 +74,6 @@ namespace chess {
 
     U8 Move::get_to_square(){
         return to_square;
-    }
-
-    U8 Move::get_take_square(){
-        return take_square;
-    }
-
-    U8 Move::get_en_passant(){
-        return en_passant;
     }
 
     bool Move::is_promotion(){
@@ -136,7 +125,7 @@ namespace chess {
         int layer;
         U64 pieces;
         U64 movebits;
-
+        U64 en_passant_attacks = U64(position->en_passant) << ((position->get_turn() == Position::WHITE) ? 40 : 16);
         layer = turn + Board::WHITE_PAWN_LAYER;
         pieces = position->board.board[layer];
         if(pieces) do {
@@ -152,18 +141,16 @@ namespace chess {
                 generate_move_bitscan(layer, from, layer + Board::WHITE_QUEEN_LAYER, movebits);
             }
             movebits = generate_pawn_double_pushes(p, position->get_turn(), free_square);
-            generate_move_bitscan(layer, from, layer, movebits, 1);
-            movebits = generate_pawn_attacks(p, position->get_turn(), notOwnPieces) & opponent_pieces;
-            generate_move_bitscan(layer, from, layer, movebits, 1);
-            movebits = generate_pawn_attack_promotions(p, position->get_turn(), notOwnPieces) & opponent_pieces;
+            generate_move_bitscan(layer, from, layer, movebits);
+            movebits = generate_pawn_attacks(p, position->get_turn(), notOwnPieces) & (opponent_pieces | en_passant_attacks);
+            generate_move_bitscan(layer, from, layer, movebits);
+            movebits = generate_pawn_promotion_attacks(p, position->get_turn(), notOwnPieces) & opponent_pieces;
             if(movebits){
                 generate_move_bitscan(layer, from, layer + Board::WHITE_KNIGHT_LAYER, movebits);
                 generate_move_bitscan(layer, from, layer + Board::WHITE_BISHOP_LAYER, movebits);
                 generate_move_bitscan(layer, from, layer + Board::WHITE_ROOK_LAYER, movebits);
                 generate_move_bitscan(layer, from, layer + Board::WHITE_QUEEN_LAYER, movebits);
             }
-            U64 ep = U64(position->en_passant) << ((turn ? 2 : 5) * 8);
-            generate_move_bitscan(layer, from, layer, movebits & (opponent_pieces | ep));
         } while (pieces &= pieces - 1); // reset LS1B
 
         layer = turn + Board::WHITE_KNIGHT_LAYER;
@@ -216,12 +203,11 @@ namespace chess {
         return moveList.size();
     }
 
-    void MoveGenerator::generate_move_bitscan(int from_layer, int from, int to_layer, U64 bits, U8 en_passant){
+    void MoveGenerator::generate_move_bitscan(int from_layer, int from, int to_layer, U64 bits){
         if(bits) do {
             int idx = __builtin_ffsll(bits) - 1;
             Move m;
-            //std::cout << "idx: " << idx << " " << bits << std::endl;
-            m.set(from_layer, from, to_layer, idx, en_passant);
+            m.set(from_layer, from, to_layer, idx);
             if(!ischeck(&m)){
                moveList.push_back(m);
             }
@@ -229,20 +215,40 @@ namespace chess {
     }
 
     bool MoveGenerator::ischeck(Move* m){
-        U64 from = U64(1) << m->get_from_square();
-        U64 to = U64(1) << m->get_to_square();
-        U64 notOpponentPieces = ~(opponent_pieces & ~to); // TODO add en passant !!!
-        U64 notOwnPieces = ~((own_pieces & ~from) | to);
+        int from_square = m->get_from_square();
+        U64 from = U64(1) << from_square;
+        U64 from_layer = m->get_from_layer();
+        int to_square = m->get_to_square();
+        U64 to = U64(1) << to_square;
+
+        U64 notOpponentPieces = ~opponent_pieces | to; 
+        // en passant
+        if(from_layer == Board::WHITE_PAWN_LAYER || from_layer == Board::BLACK_PAWN_LAYER){
+            if(((from_square - to_square) % 8) != 0){ // not on the same file
+                if(to & notOpponentPieces){
+                    // en passant
+                    if(from_layer == Board::WHITE_PAWN_LAYER){
+                        notOpponentPieces |= to >> 8;
+                    } else {
+                        notOpponentPieces |= to << 8;
+                    }
+                }
+            }
+        }
+
+        U64 notOwnPieces = (~own_pieces | from) & ~to;
         U64 free_square = notOwnPieces & notOpponentPieces;
         U64 attacks = generate_attacks(to, notOpponentPieces, free_square);
         U64 ourKing = (m->get_to_layer() == turn + Board::WHITE_KING_LAYER) ? to : position->board.board[turn + Board::WHITE_KING_LAYER];
+        //if(m->to_long_algebraic() == "h4g4"){
+        //    printBitset(m->to_long_algebraic(), attacks);
+        //}
         return (attacks & ourKing) != 0;
     }
 
     U64 MoveGenerator::generate_attacks(U64 to, U64 notOpponentPieces, U64 free_square){
         U64 attacks = generate_pawn_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, position->get_turn() == Position::WHITE ? Position::BLACK : Position::WHITE, notOpponentPieces);
-        attacks |= generate_pawn_attack_promotions(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, position->get_turn() == Position::WHITE ? Position::BLACK : Position::WHITE, notOpponentPieces);
-        //TODO EN PASSANT ATTACKS
+        attacks |= generate_pawn_promotion_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, position->get_turn() == Position::WHITE ? Position::BLACK : Position::WHITE, notOpponentPieces);
         attacks |= generate_knight_attacks(position->board.board[opponent + Board::WHITE_KNIGHT_LAYER] & ~to, notOpponentPieces);
         attacks |= generate_bishop_attacks((position->board.board[opponent + Board::WHITE_BISHOP_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER]) & ~to, notOpponentPieces, free_square);
         attacks |= generate_rook_attacks((position->board.board[opponent + Board::WHITE_ROOK_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER]) & ~to, notOpponentPieces, free_square);
@@ -303,7 +309,7 @@ namespace chess {
         return attacks & notSelf;
     }
 
-    U64 MoveGenerator::generate_pawn_attack_promotions(U64 layer, Color color, U64 notSelf){
+    U64 MoveGenerator::generate_pawn_promotion_attacks(U64 layer, Color color, U64 notSelf){
         U64 attacks = 0;
         if(color == Position::WHITE){
             attacks = (layer & aFileMask) << 7
@@ -359,7 +365,7 @@ namespace chess {
              | layer << 8
              | layer >> 8
              | (layer & hFileMask) << 1
-             | (layer & hFileMask) >> 1;
+             | (layer & aFileMask) >> 1;
         return attacks & notSelf;
     }
 

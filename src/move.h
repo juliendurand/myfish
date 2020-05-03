@@ -17,20 +17,16 @@ namespace chess {
         U8 from_square; // 6 bits
         U8 to_layer;    // 4 bits
         U8 to_square;   // 6 bits
-        U8 take_square;        // 6 bits
-        U8 en_passant;  // 6 bits
+        //U8 en_passant;  // 6 bits
 
     public:
-        void set(U8 from_layer, U8 from_square, U8 to_layer, U8 to_square,
-                 U8 en_passant);
+        void set(U8 from_layer, U8 from_square, U8 to_layer, U8 to_square);
         U8 get_from_layer();
         Piece get_from_piece();
         U8 get_from_square();
         U8 get_to_layer();
         Piece get_to_piece();
         U8 get_to_square();
-        U8 get_take_square();
-        U8 get_en_passant();
         bool is_promotion();
         std::string to_long_algebraic();
     };
@@ -38,8 +34,6 @@ namespace chess {
     class MoveGenerator{
     private:
         Position* position;
-        //Move move;
-        //Board* to_board;
         int turn;
         int opponent;
         int layer;
@@ -57,12 +51,12 @@ namespace chess {
         int generate();
         bool ischeck(Move* m);
         U64 generate_attacks(U64 to, U64 notOpponentPieces, U64 free_square);
-        void generate_move_bitscan(int from_layer, int from, int to_layer, U64 bits, U8 en_passant = 0);
+        void generate_move_bitscan(int from_layer, int from, int to_layer, U64 bits);
         U64 generate_pawn_pushes(U64 layer, Color color, U64 free_square);
         U64 generate_pawn_push_promotions(U64 layer, Color color, U64 free_square);
         U64 generate_pawn_double_pushes(U64 layer, Color color, U64 free_square);
         U64 generate_pawn_attacks(U64 layer, Color color, U64 notSelf);
-        U64 generate_pawn_attack_promotions(U64 layer, Color color, U64 free_square);
+        U64 generate_pawn_promotion_attacks(U64 layer, Color color, U64 notSelf);
         U64 generate_knight_attacks(U64 layer, U64 notSelf);
         U64 generate_bishop_attacks(U64 layer, U64 notSelf, U64 free_square);
         U64 generate_rook_attacks(U64 layer, U64 notSelf, U64 free_square);
