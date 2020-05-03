@@ -53,7 +53,7 @@ function play(move){
   console.log(move)
   from = move.substring(0,2)
   to = move.substring(2,4)
-  promotion = move.length > 4 ? substring(4,5) : ''
+  promotion = move.length > 4 ? move.substring(4,5) : ''
   game.move({from: from, to: to, promotion:promotion})
   board.position(game.fen())
 }

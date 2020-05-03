@@ -401,10 +401,33 @@ namespace chess {
     Move Position::get_move_from_long_algebraic(const std::string &m){
         int from = Board::coordinates_to_square(m.substr(0, 2));
         int to = Board::coordinates_to_square(m.substr(2, 4));
+        int layer = Board::INVALID_LAYER;
+        if(m.length() == 5){
+            char promotion = m.substr(4, 5)[0];
+            switch(promotion){
+                case 'n':
+                    layer = Board::WHITE_KNIGHT_LAYER;
+                    break;
+                case 'b':
+                    layer = Board::WHITE_BISHOP_LAYER;
+                    break;
+                case 'r':
+                    layer = Board::WHITE_ROOK_LAYER;
+                    break;
+                case 'q':
+                    layer = Board::WHITE_QUEEN_LAYER;
+                    break;
+            }
+        }
         MoveGenerator generator(this);
         generator.generate();
         for(Move m : generator.moveList){
             if(m.get_from_square() == from && m.get_to_square() == to){
+                if(layer != Board::INVALID_LAYER){
+                    if(m.get_to_layer() != layer && m.get_to_layer() != layer + Board::BLACK_PAWN_LAYER){
+                        continue;
+                    }
+                }
                 return m;
             }
         }

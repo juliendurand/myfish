@@ -19,6 +19,10 @@ def play():
 	return search(moves)
 
 
+@app.route('/<path:u_path>')
+def catch_all(u_path):
+	return send_file(u_path)
+
 def search(moves):
 	engine = subprocess.Popen(
 	    #'./../../Stockfish/src/stockfish',
