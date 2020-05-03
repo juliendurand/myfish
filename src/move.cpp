@@ -153,9 +153,9 @@ namespace chess {
             }
             movebits = generate_pawn_double_pushes(p, position->get_turn(), free_square);
             generate_move_bitscan(layer, from, layer, movebits, 1);
-            movebits = generate_pawn_attacks(p, position->get_turn(), notOwnPieces);
+            movebits = generate_pawn_attacks(p, position->get_turn(), notOwnPieces) & opponent_pieces;
             generate_move_bitscan(layer, from, layer, movebits, 1);
-            movebits = generate_pawn_attack_promotions(p, position->get_turn(), notOwnPieces);
+            movebits = generate_pawn_attack_promotions(p, position->get_turn(), notOwnPieces) & opponent_pieces;
             if(movebits){
                 generate_move_bitscan(layer, from, layer + Board::WHITE_KNIGHT_LAYER, movebits);
                 generate_move_bitscan(layer, from, layer + Board::WHITE_BISHOP_LAYER, movebits);
