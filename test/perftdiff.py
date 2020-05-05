@@ -71,7 +71,8 @@ def compare(depth):
     return False
 
 
-for i in range(1, 7):
-    print('perft ', i, ': ')
-    if not compare(i):
-        break
+if __name__ == '__main__':
+    for i in range(1, 7):
+        print('perft ', i, ': ')
+        if not compare(i):
+            break
