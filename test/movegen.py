@@ -10,3 +10,4 @@ if __name__ == '__main__':
 			nodes = sum(map(int, results))
 			success = nodes == test['nodes']
 			print('OK' if success else 'FAILED', ':', test['fen'], test['depth'], nodes)
+			assert success

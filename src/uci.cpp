@@ -140,7 +140,8 @@ namespace uci {
     }
 
     void UCIEngine::uci_go(const std::string &params){
-        std::cout << "bestmove " <<  chess::search(position, 5) + "\n";;
+        auto move = chess::search(position, 6);
+        std::cout << "bestmove " <<  move + "\n";;
     }
 
     void UCIEngine::uci_stop(const std::string &params){

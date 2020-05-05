@@ -1,3 +1,4 @@
+#include <iostream>
 #include <utility> 
 
 #include "search.h"
@@ -21,40 +22,45 @@ namespace chess {
         return score;
 	}
 
-	double minimax(Position* position, int depth){
-		double value = -1000000;
-
+	double alphabeta(double alpha, double beta, Position* position, int depth){
 		if(depth == 0){
-			return eval(position) * (position->get_turn() == Position::WHITE ? 1 : -1);
+			return eval(position) * (position->get_turn() == Position::WHITE ? 1 : -1); 
 		}
 
 		MoveGenerator generator(position);
 		generator.generate();
+		double value = -10000;
 		for(Move m : generator.moveList){
         	Position new_position(*position);
         	new_position.make_move(&m);
-        	double subtree_value = -minimax(&new_position, depth - 1);
-        	value = std::max(value, subtree_value);
+        	value = std::max(value, -alphabeta(-beta, -alpha, &new_position, depth - 1));
+        	alpha = std::max(value, alpha);
+        	if(alpha >= beta){
+        		break;  // cut-off
+        	}
         }
         return value;
 	}
 
 	std::string search(Position* position, int depth){
-		double value = -10000000;
+		double infinity = 10000000;
 		std::string bestMove = "";
+
+		double value = -infinity;
 
         MoveGenerator generator(position);
 		generator.generate();
         for(Move m : generator.moveList){
         	Position new_position(*position);
         	new_position.make_move(&m);
-        	double subtree_value = -minimax(&new_position, depth - 1);
-        	if(subtree_value > value){
-        		value = subtree_value;
-        		bestMove = m.to_long_algebraic();
-        	}
+        	
+    		double score = -alphabeta(-infinity, infinity, &new_position, depth - 1);// * (position->get_turn() == Position::WHITE ? 1 : -1);
+    		if(score >= value){
+    			value = score;
+    			bestMove = m.to_long_algebraic();
+    		}
+    		//std::cout << m.to_long_algebraic() << " " << score << std::endl; 
         }
-        
 		return bestMove;
 	}
 

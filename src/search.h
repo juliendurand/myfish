@@ -5,6 +5,8 @@
 
 namespace chess{
 	double eval(Position* position);
+	double alphabetaMax(double alpha, double beta, Position* position, int depth);
+	double alphabetaMin(double alpha, double beta, Position* position, int depth);
 	std::string search(Position* position, int depth);
 }
 
