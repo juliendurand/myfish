@@ -22,9 +22,28 @@ namespace chess {
         return score;
 	}
 
+    double quiesce(double alpha, double beta, Position* position){
+        double stand_pat = eval(position) * (position->get_turn() == Position::WHITE ? 1 : -1); 
+        if(stand_pat >= beta){
+            return beta;
+        }
+        if(alpha < stand_pat){
+            alpha = stand_pat;
+        }
+        /*until(){
+            if(score >= beta){
+                return beta;
+            }
+            if(score > alpha){
+               alpha = score;
+            }
+        }*/
+        return alpha;
+    }
+
 	double alphabeta(double alpha, double beta, Position* position, int depth){
 		if(depth == 0){
-			return eval(position) * (position->get_turn() == Position::WHITE ? 1 : -1); 
+			return quiesce(alpha, beta, position); 
 		}
 
 		MoveGenerator generator(position);

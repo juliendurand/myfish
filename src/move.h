@@ -46,9 +46,11 @@ namespace chess {
 
     public:
         std::vector<Move> moveList;
+        std::vector<Move> allList;
 
         MoveGenerator(Position* pos);
         int generate();
+        int generate_all();
         bool ischeck(Move* m);
         U64 generate_attacks(U64 to, U64 notOpponentPieces, U64 free_square);
         void generate_move_bitscan(int from_layer, int from, int to_layer, U64 bits);

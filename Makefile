@@ -12,6 +12,11 @@ LDFLAGS +=
 
 MKDIR_P ?= mkdir -p
 
+all: build
+
+debug: CXXFLAGS += -DDEBUG -g -O0
+debug: build
+
 build: $(OBJS)
 	@$(MKDIR_P) $(BIN_DIR)
 	$(CXX) -o $(EXEC) $(OBJS) $(LDFLAGS)

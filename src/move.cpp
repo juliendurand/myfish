@@ -114,13 +114,19 @@ namespace chess {
             | position->board.board[opponent + 5];
         all_pieces = own_pieces | opponent_pieces;
         free_square = ~all_pieces;
-        // printBitset("ours ", own_pieces);
-        // printBitset("opponent ", opponent_pieces);
-        // printBitset("all ", all_pieces);
-        // printBitset("free square ", free_square);
     }
 
     int MoveGenerator::generate(){
+        generate_all();
+        for(auto m : allList){
+            if(!ischeck(&m)){
+               moveList.push_back(m);
+            }
+        }
+        return moveList.size();
+    }
+
+    int MoveGenerator::generate_all(){
         U64 notOwnPieces = ~own_pieces;
         int layer;
         U64 pieces;
@@ -200,7 +206,7 @@ namespace chess {
 
         generate_castling();
 
-        return moveList.size();
+        return allList.size();
     }
 
     void MoveGenerator::generate_move_bitscan(int from_layer, int from, int to_layer, U64 bits){
@@ -208,48 +214,39 @@ namespace chess {
             int idx = __builtin_ffsll(bits) - 1;
             Move m;
             m.set(from_layer, from, to_layer, idx);
-            if(!ischeck(&m)){
-               moveList.push_back(m);
-            }
+            allList.push_back(m);
         } while (bits &= bits - 1); // reset LS1B
     }
 
     bool MoveGenerator::ischeck(Move* m){
         int from_square = m->get_from_square();
         U64 from = U64(1) << from_square;
-        U64 from_layer = m->get_from_layer();
+        int from_layer = m->get_from_layer();
         int to_square = m->get_to_square();
         U64 to = U64(1) << to_square;
 
-         
         // en passant
         U64 ep = U64(0);
-        if(from_layer == Board::WHITE_PAWN_LAYER || from_layer == Board::BLACK_PAWN_LAYER){
-            if(((from_square - to_square) % 8) != 0){ // not on the same file
-                if(to & ~opponent_pieces){
-                    // en passant
-                    if(from_layer == Board::WHITE_PAWN_LAYER){
-                        ep = to >> 8;
-                    } else {
-                        ep = to << 8;
-                    }
-                }
-            }
+        if((from_layer - turn == 0)
+            && (((from_square - to_square) % 8) != 0) // not on the same file
+            && (to & ~opponent_pieces)){
+                ep = (from_layer == Board::WHITE_PAWN_LAYER) ? to >> 8 : to << 8;
         }
         U64 notOpponentPieces = ~opponent_pieces | to | ep;
         U64 notOwnPieces = (~own_pieces | from) & ~to;
         U64 free_square = notOwnPieces & notOpponentPieces;
         U64 attacks = generate_attacks(to | ep, notOpponentPieces, free_square);
-        U64 ourKing = (m->get_to_layer() == turn + Board::WHITE_KING_LAYER) ? to : position->board.board[turn + Board::WHITE_KING_LAYER];
-        /*if(m->to_long_algebraic() == "f4e3"){
-            printBitset(m->to_long_algebraic(), attacks);
-        }*/
-        return (attacks & ourKing) != 0;
+
+        int king_layer = turn + Board::WHITE_KING_LAYER;
+        U64 ourKing = position->board.board[king_layer] & ~from;
+        ourKing = ourKing | (!ourKing  * to);
+        return attacks & ourKing;
     }
 
     U64 MoveGenerator::generate_attacks(U64 to, U64 notOpponentPieces, U64 free_square){
-        U64 attacks = generate_pawn_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, position->get_turn() == Position::WHITE ? Position::BLACK : Position::WHITE, notOpponentPieces);
-        attacks |= generate_pawn_promotion_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, position->get_turn() == Position::WHITE ? Position::BLACK : Position::WHITE, notOpponentPieces);
+        int w = position->get_turn() == Position::WHITE ? Position::BLACK : Position::WHITE;
+        U64 attacks = generate_pawn_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, w, notOpponentPieces);
+        attacks |= generate_pawn_promotion_attacks(position->board.board[opponent + Board::WHITE_PAWN_LAYER] & ~to, w, notOpponentPieces);
         attacks |= generate_knight_attacks(position->board.board[opponent + Board::WHITE_KNIGHT_LAYER] & ~to, notOpponentPieces);
         attacks |= generate_bishop_attacks((position->board.board[opponent + Board::WHITE_BISHOP_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER]) & ~to, notOpponentPieces, free_square);
         attacks |= generate_rook_attacks((position->board.board[opponent + Board::WHITE_ROOK_LAYER] | position->board.board[opponent + Board::WHITE_QUEEN_LAYER]) & ~to, notOpponentPieces, free_square);
@@ -263,26 +260,18 @@ namespace chess {
     U64 ghFileMask = 0x3F3F3F3F3F3F3F3F;
 
     U64 MoveGenerator::generate_pawn_pushes(U64 layer, Color color, U64 free_square){
-        U64 pushes = 0;
-        if(color == Position::WHITE){
-            pushes = layer << 8;
-            pushes &= 0x00FFFFFFFFFF0000;
-        }else{
-            pushes = layer >> 8;
-            pushes &= 0x0000FFFFFFFFFF00;
-        }
+        int w = color == Position::WHITE;
+        int b = 1 - w;
+        U64 pushes = layer << (8 * w) | layer >> (8 * b);
+        pushes &= 0x00FFFFFFFFFF0000 * w + 0x0000FFFFFFFFFF00 * b;
         return pushes & free_square;
     }
 
     U64 MoveGenerator::generate_pawn_push_promotions(U64 layer, Color color, U64 free_square){
-        U64 pushes = 0;
-        if(color == Position::WHITE){
-            pushes = layer << 8;
-            pushes &= 0xFF00000000000000;
-        }else{
-            pushes = layer >> 8;
-            pushes &= 0x00000000000000FF;
-        }
+        int w = color == Position::WHITE;
+        int b = 1 - w;
+        U64 pushes = layer << (8 * w) | layer >> (8 * b);
+        pushes &= 0xFF00000000000000 * w + 0x00000000000000FF * b;
         return pushes & free_square;
     }
 
@@ -373,40 +362,28 @@ namespace chess {
     void MoveGenerator::generate_castling(){
         Move m;
         int layer = Board::WHITE_KING_LAYER + turn;
-        int from = 4;
-        int to_kingside = 6;
-        int to_queenside = 2;
-        U64 kingside_free_square = 0x60;
-        U64 queenside_free_square = 0xE;
-        U64 kingside_castling_squares = 0x70;
-        U64 queenside_castling_squares = 0x1C;
-
-        if(position->get_turn() == Position::BLACK){
-            from += 56;
-            to_kingside += 56;
-            to_queenside += 56;
-            kingside_free_square <<= 56;
-            queenside_free_square <<= 56;
-            kingside_castling_squares <<= 56;
-            queenside_castling_squares <<= 56;
-        }
+        int b = turn != 0;
+        int from = 4 + 56 * b;
+        int to_kingside = 6 + 56 * b;
+        int to_queenside = 2 + 56 * b;
+        U64 kingside_free_square = U64(0x60) << (56 * b);
+        U64 queenside_free_square = U64(0xE) << (56 * b);
+        U64 kingside_castling_squares = U64(0x70) << (56 * b);
+        U64 queenside_castling_squares = U64(0x1C) << (56 * b);
 
         U64 free_square = ~own_pieces & ~opponent_pieces;
         U64 attacks = generate_attacks(U64(0), ~opponent_pieces, free_square);
-        if(position->get_castling(turn == 0 ? Board::WHITE_KING : Board::BLACK_KING)){
-            if(!(attacks & kingside_castling_squares) && ((free_square & kingside_free_square) == kingside_free_square)){
+        if(position->get_castling(b ? Board::BLACK_KING : Board::WHITE_KING) 
+            && !(attacks & kingside_castling_squares) 
+            && ((free_square & kingside_free_square) == kingside_free_square)){
                 m.set(layer, from, layer, to_kingside);
                 moveList.push_back(m);
-            }
         }
-        //std::cout<< turn << std::endl;
-        if(position->get_castling(turn == 0 ? Board::WHITE_QUEEN : Board::BLACK_QUEEN)){
-            //std::cout<< "test2" << std::endl;
-            if(!(attacks & queenside_castling_squares) && ((free_square & queenside_free_square) == queenside_free_square)){
-                //std::cout<< "test3" << std::endl;
+        if(position->get_castling(b ? Board::BLACK_QUEEN : Board::WHITE_QUEEN)
+            && !(attacks & queenside_castling_squares) 
+            && ((free_square & queenside_free_square) == queenside_free_square)){
                 m.set(layer, from, layer, to_queenside);
                 moveList.push_back(m);
-            }
         }
     }
 
